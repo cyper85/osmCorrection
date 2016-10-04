@@ -22,13 +22,23 @@
  * THE SOFTWARE.
  */
 
-
-var correctionTool = new Object();
-correctionTool.callbacks = {};
-correctionTool.addCallbackList = function(name) {
-    this.callbacks[name] = this["correct" + name.charAt(0).toUpperCase() + name.slice(1)];
+var correctionObject = {
+    id: "",
+    downloadButton: {},
+    downloadTags: {}
 };
-correctionTool.downloadList = [];
-correctionTool.addDownloadList = function(list) {
-    this.downloadList = this.downloadList.concat(list);
+
+var correctionTool = function() {
+    var callbacks = [];
+    this.addClass = function(obj) {
+        callbacks.add(obj);
+    };
+    
+    // Generiere Download-Buttons
+    this.generateDownloadButtons = function() {
+        for (id in callbacks) {
+            // neues Div erzeugen
+            // 
+        }
+    }
 };
