@@ -24,8 +24,8 @@
 
 var correctionObject = {
     id: "",
-    downloadButton: {},
-    downloadTags: {}
+    downloadButton: null,
+    downloadTags: null
 };
 
 var correctionTool = function() {
@@ -37,8 +37,18 @@ var correctionTool = function() {
     // Generiere Download-Buttons
     this.generateDownloadButtons = function() {
         for (id in callbacks) {
+            if(callbacks[id].downloadButton === null) {
+                continue;
+            }
             // neues Div erzeugen
-            // 
+            var div = document.createElement("div");
+            div.classList.add("option");
+            div.classList.add(callbacks[id].downloadButton.icon);
+            div.classList.add("inactive");
+            div.id = "option-"+callbacks[id].id;
+            div.innerHTML = callbacks[id].downloadButton.id;
+            div.onclick = callbacks[id].downloadButton.callback
+            document.getElementById("option-buttions").append(div)
         }
     }
 };
