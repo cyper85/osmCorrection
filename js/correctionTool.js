@@ -36,7 +36,7 @@ var correctionTool = function() {
     
     // Generiere Download-Buttons
     this.generateDownloadButtons = function() {
-        for (id in callbacks) {
+        for ( var id in callbacks) {
             if(callbacks[id].downloadButton === null) {
                 continue;
             }
@@ -46,9 +46,9 @@ var correctionTool = function() {
             div.classList.add(callbacks[id].downloadButton.icon);
             div.classList.add("inactive");
             div.id = "option-"+callbacks[id].id;
-            div.innerHTML = callbacks[id].downloadButton.id;
-            div.onclick = callbacks[id].downloadButton.callback
-            document.getElementById("option-buttions").append(div)
+            div.innerHTML = callbacks[id].downloadButton.text;
+            div.onclick = callbacks[id].downloadButton.callback;
+            document.getElementById("option-buttions").append(div);
         }
-    }
+    };
 };
