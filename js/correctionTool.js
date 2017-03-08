@@ -22,22 +22,18 @@
  * THE SOFTWARE.
  */
 
-var correctionObject = {
-    id: "",
-    downloadButton: null,
-    downloadTags: null
-};
 
-var correctionTool = function() {
+var correctionTool = function () {
     var callbacks = [];
-    this.addClass = function(obj) {
+    
+    this.registerObject = function (obj) {
         callbacks.add(obj);
     };
-    
+
     // Generiere Download-Buttons
-    this.generateDownloadButtons = function() {
-        for ( var id in callbacks) {
-            if(callbacks[id].downloadButton === null) {
+    this.generateDownloadButtons = function () {
+        for (var id in callbacks) {
+            if (callbacks[id].downloadButton === null) {
                 continue;
             }
             // neues Div erzeugen
@@ -45,10 +41,20 @@ var correctionTool = function() {
             div.classList.add("option");
             div.classList.add(callbacks[id].downloadButton.icon);
             div.classList.add("inactive");
-            div.id = "option-"+callbacks[id].id;
+            div.id = "option-" + callbacks[id].id;
             div.innerHTML = callbacks[id].downloadButton.text;
             div.onclick = callbacks[id].downloadButton.callback;
             document.getElementById("option-buttions").append(div);
         }
     };
+    
+};
+
+
+var correctionObject = function(){
+    this.id= "";
+    this.downloadButton= null;
+    this.downloadTags= null;
+    
+    correctionTool.registerObject(this);
 };

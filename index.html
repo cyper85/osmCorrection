@@ -5,33 +5,43 @@
         <title>OpenStreetMap Correction Tool</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="css/style.css" />
-        <link rel="stylesheet" href="css/leaflet.css" />
+        <link rel="stylesheet" href="css/style.css"/>
+        <link rel="stylesheet" href="js/libs/leaflet/leaflet.css"/>
         <link rel="shortcut icon" href="images/logo.ico">
         <link rel="icon" href="images/logo.svg" sizes="any" type="image/svg+xml">
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
     </head>
     <body>
         <div id="map"></div>
-        <div class="state" id="stateOne">
+        <div class="state" id="stateZero">
+            <button type="button" class="btn-default" id="osmLogin">login</button>
+        </div>
+        <div class="state hidden" id="stateOne">
             <h2>Daten herunterladen</h2>
             Zoome in die Region, die du bearbeiten willst und wähle die zu korrigierenden Daten:
-            <div id="option-buttions"></div>
-            <!--<div id="option-tel" class="option tel inactiv">Telefonnummern</div>
-            <div id="option-mail" class="option mail inactiv">Emailadressen</div>
-            <div id="option-url" class="option website inactiv">URLs</div>
-            <div id="option-wiki" class="option wikpedia inactiv">Wikipedia</div>
-            <div id="option-fb" class="option facebook inactiv">Facebook</div>
-            <div id="option-twitter" class="option twitter inactiv">Twitter</div>
-            <div id="option-xing" class="option xing inactiv">Xing</div>
-            <div id="option-linkedin" class="option linkedin inactiv">LinkedIn</div>
-            <div id="download" class="button hidden">Download</div>-->
+            <div id="option-buttions">
+                <button type="button" id="option-tel" class="option tel btn btn-default">Telefonnummern</button>
+                <button type="button" id="option-mail" class="option mail btn btn-default">Emailadressen</button>
+                <button type="button" id="option-url" class="option website btn btn-default">URLs</button>
+                <button type="button" id="option-wiki" class="option wikpedia btn btn-default">Wikipedia</button>
+                <button type="button" id="option-fb" class="option facebook btn btn-default">Facebook</button>
+                <button type="button" id="option-twitter" class="option twitter btn btn-default">Twitter</button>
+                <button type="button" id="option-xing" class="option xing btn btn-default">Xing</button>
+                <button type="button" id="option-linkedin" class="option linkedin btn btn-default">LinkedIn</button>
+                <button type="button" id="download" class="option btn btn-danger hidden">Download</button>
+            </div>
+
         </div>
         <div class="state hidden" id="stateTwo">
             <h2>Daten korrigieren</h2>
         </div>
-        <div><button id="test">login</button></div>
         <script src="js/osmauth.min.js"></script>
-        <script src="js/leaflet.js"></script>
+        <script src="js/libs/leaflet/leaflet.js"></script>
+        <script src="js/libs/jquery/jquery.js"></script>
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    
         <script src="js/main.js"></script>
     </body>
 </html>

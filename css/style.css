@@ -43,18 +43,8 @@ div.state {
   width: 150px; }
   div.state .option {
     cursor: pointer;
-    margin: 5px;
-    padding: 5px;
-    border: solid 1px; }
-    div.state .option.inactiv {
-      border-color: grey;
-      color: grey; }
-  div.state .button {
-    cursor: pointer;
-    margin: 5px;
-    padding: 5px;
-    background-color: lightgreen;
-    border: solid 1px darkgreen; }
+    width: 90%;
+    margin: 5px; }
 
 .hidden {
   display: none; }

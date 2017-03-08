@@ -5,6 +5,30 @@
         <data xmlns="http://www.netbeans.org/ns/clientside-project/1">
             <name>osmCorrection</name>
         </data>
-        <libraries xmlns="http://www.netbeans.org/ns/cdnjs-libraries/1"/>
+        <libraries xmlns="http://www.netbeans.org/ns/cdnjs-libraries/1">
+            <library name="jquery" version="3.1.1">
+                <file localPath="js/libs/jquery/core.js" path="core.js"/>
+                <file localPath="js/libs/jquery/jquery.js" path="jquery.js"/>
+                <file localPath="js/libs/jquery/jquery.min.js" path="jquery.min.js"/>
+                <file localPath="js/libs/jquery/jquery.min.map" path="jquery.min.map"/>
+                <file localPath="js/libs/jquery/jquery.slim.js" path="jquery.slim.js"/>
+                <file localPath="js/libs/jquery/jquery.slim.min.js" path="jquery.slim.min.js"/>
+                <file localPath="js/libs/jquery/jquery.slim.min.map" path="jquery.slim.min.map"/>
+            </library>
+            <library name="leaflet" version="1.0.3">
+                <file localPath="js/libs/leaflet/images/layers-2x.png" path="images/layers-2x.png"/>
+                <file localPath="js/libs/leaflet/images/layers.png" path="images/layers.png"/>
+                <file localPath="js/libs/leaflet/images/marker-icon-2x.png" path="images/marker-icon-2x.png"/>
+                <file localPath="js/libs/leaflet/images/marker-icon.png" path="images/marker-icon.png"/>
+                <file localPath="js/libs/leaflet/images/marker-shadow.png" path="images/marker-shadow.png"/>
+                <file localPath="js/libs/leaflet/leaflet.css" path="leaflet.css"/>
+                <file localPath="js/libs/leaflet/leaflet.js" path="leaflet.js"/>
+            </library>
+            <library name="leaflet-providers" version="1.1.15">
+                <file localPath="js/libs/leaflet-providers/leaflet-providers.js" path="leaflet-providers.js"/>
+                <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js" path="leaflet-providers.min.js"/>
+                <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js.map" path="leaflet-providers.min.js.map"/>
+            </library>
+        </libraries>
     </configuration>
 </project>

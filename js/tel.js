@@ -27,4 +27,4 @@ var coTel = new correctionObject();
 
 coTel.id = "tel";
 coTel.downloadButton = {};
-coTel.downloadTags = ["contact:phone","phone","contact:fax","fax"];
+coTel.downloadTags = ["contact:phone", "phone", "contact:fax", "fax"];
