@@ -15,7 +15,7 @@
     <body>
         <div id="map"></div>
         <div class="state" id="stateZero">
-            <button type="button" class="btn-default" id="osmLogin">login</button>
+            <button type="button" class="btn btn-default" id="osmLogin">login</button>
         </div>
         <div class="state hidden" id="stateOne">
             <h2>Daten herunterladen</h2>
@@ -35,8 +35,10 @@
         </div>
         <div class="state hidden" id="stateTwo">
             <h2>Daten korrigieren</h2>
+            <p id="syntax"></p>
         </div>
         <script src="js/osmauth.min.js"></script>
+        <script src="js/correctionTool.js"></script>
         <script src="js/libs/leaflet/leaflet.js"></script>
         <script src="js/libs/jquery/jquery.js"></script>
         <!-- Latest compiled and minified JavaScript -->

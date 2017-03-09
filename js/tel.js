@@ -23,8 +23,28 @@
  */
 
 
-var coTel = new correctionObject();
+var coTel = new correctionObjectClass();
 
 coTel.id = "tel";
-coTel.downloadButton = {};
 coTel.downloadTags = ["contact:phone", "phone", "contact:fax", "fax"];
+
+coTel.correctingSyntax = function(element) {
+    var answer = [];
+    if(typeof element.tags !== "undefined") {
+        var regex = /^\+(?:[0-9][ -]?){6,14}[0-9]$/;
+        for (var key in this.downloadTags ) {
+            if(typeof element.tags[this.downloadTags[key]] !== "undefined") {
+                if (!regex.test(element.tags[this.downloadTags[key]])) {
+                    answer.push(this.downloadTags[key]);
+                }
+            }
+        }
+    }
+    return answer;
+};
+
+coTel.syntaxEditor = function(tag,element) {
+    
+};
+
+coTel.done();

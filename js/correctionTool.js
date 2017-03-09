@@ -22,39 +22,114 @@
  * THE SOFTWARE.
  */
 
+if (typeof map === "undefined") {
+    /**
+     * global map var
+     * @type Leaflet
+     */
+    var map;
+}
 
-var correctionTool = function () {
+var correctionToolClass = function () {
+    /**
+     * correctionObjects
+     * @type Array
+     */
     var callbacks = [];
-    
+
     this.registerObject = function (obj) {
-        callbacks.add(obj);
+        callbacks.push(obj);
+        for(var tag in obj.downloadTags) {
+            overpassQuery(obj.downloadTags[tag]);
+        }
     };
 
-    // Generiere Download-Buttons
-    this.generateDownloadButtons = function () {
-        for (var id in callbacks) {
-            if (callbacks[id].downloadButton === null) {
-                continue;
+    var overpassQuery = function (option) {
+        var bounds = map.getBounds().getSouth() + ',' + map.getBounds().getWest() + ',' + map.getBounds().getNorth() + ',' + map.getBounds().getEast();
+
+        $.getJSON("https://overpass-api.de/api/interpreter",
+                {"data": '[out:json][timeout:25];(node["' + option + '"](' + bounds + ');way["' + option + '"](' + bounds + ');relation["' + option + '"](' + bounds + '););out body;>;out skel qt;'},
+                correctData
+                );
+    };
+    
+    var nodes = {};
+    var ways = {};
+    var relations = {};
+    var syntaxErrors = [];
+    var syntaxFlag = true;
+
+    var correctData = function (data) {
+        for (var i = 0; i < data.elements.length; i++) {
+            if (data.elements[i].type === "node") {
+                nodes[data.elements[i].id] = data.elements[i];
             }
-            // neues Div erzeugen
-            var div = document.createElement("div");
-            div.classList.add("option");
-            div.classList.add(callbacks[id].downloadButton.icon);
-            div.classList.add("inactive");
-            div.id = "option-" + callbacks[id].id;
-            div.innerHTML = callbacks[id].downloadButton.text;
-            div.onclick = callbacks[id].downloadButton.callback;
-            document.getElementById("option-buttions").append(div);
+            if (data.elements[i].type === "way") {
+                ways[data.elements[i].id] = data.elements[i];
+            }
+            if (data.elements[i].type === "relation") {
+                relations[data.elements[i].id] = data.elements[i];
+            }
+            if (typeof data.elements[i].tags !== "undefined") {
+                var correct = false;
+                for(var key in callbacks) {
+                    correct = callbacks[key].correctingSyntax(data.elements[i]);
+                    if(correct.length>0) {
+                        for(var cKey in correct) {
+                            syntaxErrors.push({
+                                element: data.elements[i],
+                                tag: correct[cKey],
+                                plugin: callbacks[key]
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        if(syntaxFlag && (syntaxErrors.length>0)) {
+            syntaxFlag = false;
+            syntaxEditor();
         }
     };
     
+    var syntaxEditor = function () {
+        var error = syntaxErrors.shift();
+        error.plugin.syntaxEditor(error.tag,error.element);
+    }
 };
 
+/**
+ * 
+ * @type correctionToolClass
+ */
+var correctionTool = new correctionToolClass();
 
-var correctionObject = function(){
-    this.id= "";
-    this.downloadButton= null;
-    this.downloadTags= null;
+/**
+ * 
+ * @returns 
+ */
+var correctionObjectClass = function () {
+    this.id = "";
+    this.downloadTags = [];
+
+    this.getTags = function() {
+        return this.downloadTags;
+    }
     
-    correctionTool.registerObject(this);
+    this.done = function() {
+        correctionTool.registerObject(this);
+    };
+    
+    this.correctingSyntax = function(element) {};
+    
+    /**
+     * Erstellt Syntax-Editor
+     * @param {string} tag
+     * @param {object} element
+     * @returns {none}
+     */
+    this.syntaxEditor = function(tag, element) {};
+    
+    
+    this.correctionObjectClass = function() {};
 };

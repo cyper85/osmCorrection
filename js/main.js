@@ -52,62 +52,22 @@ for (var i = 0; i < options.length; i++) {
         } else {
             document.getElementById("download").classList.remove("hidden");
         }
-        console.log(downloadOptions);
         this.classList.toggle('btn-default');
         this.classList.toggle('btn-primary');
     };
-}
-
-function loadJS(name) {
-    return 1;
-    var jsTag = document.createElement('script');
-    jsTag.type = "text/javascript";
-    jsTag.src = 'js/' + name + '.js';
-
-    // add dom node to head
-    document.getElementsByTagName('head')[0].appendChild(jsTag);
 }
 
 document.getElementById("download").onclick = function () {
     document.getElementById("stateOne").classList.add("hidden");
     // Abzufragende Daten sammeln
     for (key in downloadOptions) {
-        loadJS(downloadOptions[key]);
+        $.getScript( "js/"+downloadOptions[key]+".js");
     }
     // Abfrage absenden
-    overpassQuery("contact:phone");
     // Validator anschmeissen
     // Fehler anzeigen
     document.getElementById("stateTwo").classList.remove("hidden");
 };
-
-var nodes = {};
-var ways = {};
-var relations = {};
-
-var correctData = function(data) {
-    for(var i = 0; i < data.elements.length;i++) {
-        if(data.elements[i].type === "node") {
-            nodes[data.elements[i].id] = data.elements[i];
-        }
-        if(data.elements[i].type === "way") {
-            ways[data.elements[i].id] = data.elements[i];
-        }
-        if(data.elements[i].type === "relation") {
-            relations[data.elements[i].id] = data.elements[i];
-        }
-    }
-}
-
-function overpassQuery(option) {
-    bounds = map.getBounds().getSouth()+','+map.getBounds().getWest()+','+map.getBounds().getNorth()+','+map.getBounds().getEast();
-    
-    console.log(bounds);
-    $.getJSON("http://overpass-api.de/api/interpreter",
-        {"data":'[out:json][timeout:25];(node["'+option+'"]('+bounds+');way["'+option+'"]('+bounds+');relation["'+option+'"]('+bounds+'););out body;>;out skel qt;'},
-        correctData
-    );
-}
 
 function update() {
     if (auth.authenticated()) {

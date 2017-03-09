@@ -26,14 +26,9 @@ THE SOFTWARE.
     Author     : Andreas
 */
 
-button#test {
-  color: white;
-  background-color: red;
-  &.green {
-    background-color: green;
-  }
+button.btn {
+    width:100%;
 }
-
 div#map {
   height: 100%;
   position: fixed;
@@ -44,12 +39,8 @@ div#map {
 }
 
 div.state {
-  width: 150px;
-  .option {
-    cursor: pointer;
-    width:90%;
-    margin: 5px;
-  }
+  width: 200px;
+
 }
 
 .hidden {

@@ -25,11 +25,8 @@ THE SOFTWARE.
     Created on : 02.10.2016, 20:12:28
     Author     : Andreas
 */
-button#test {
-  color: white;
-  background-color: red; }
-  button#test.green {
-    background-color: green; }
+button.btn {
+  width: 100%; }
 
 div#map {
   height: 100%;
@@ -40,11 +37,7 @@ div#map {
   left: 200px; }
 
 div.state {
-  width: 150px; }
-  div.state .option {
-    cursor: pointer;
-    width: 90%;
-    margin: 5px; }
+  width: 200px; }
 
 .hidden {
   display: none; }
