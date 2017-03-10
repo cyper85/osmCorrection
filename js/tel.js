@@ -44,7 +44,14 @@ coTel.correctingSyntax = function(element) {
 };
 
 coTel.syntaxEditor = function(tag,element) {
-    
+    var div = $('<div />').addClass("syntaxElement").addClass("form-group").append(
+            $("<label />").attr("for","input").addClass("control-label").html(tag)).append(
+            $("<input />").attr("id","input").addClass("form-control").attr("type","text").attr("pattern","\\+(?:[0-9][ -]?){6,14}[0-9]").val(element.tags[tag]))
+    var form = $('<form />').attr("role","form").append(div).append(
+            $("<button />").addClass("btn").addClass("btn-success").html("weiter").click(correctionTool.syntaxCorrection));
+    $('#syntax').html("");
+    $('#syntax').append(form);
+    $('#syntax form').validator();
 };
 
 coTel.done();

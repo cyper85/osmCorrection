@@ -92,10 +92,21 @@ var correctionToolClass = function () {
         }
     };
     
+    var syntaxError;
+    
     var syntaxEditor = function () {
-        var error = syntaxErrors.shift();
-        error.plugin.syntaxEditor(error.tag,error.element);
-    }
+        syntaxError = syntaxErrors.shift();
+        syntaxError.plugin.syntaxEditor(syntaxError.tag,syntaxError.element);
+    };
+    
+    this.syntaxCorrection = function() {
+        // irgendwas speichern
+        if(syntaxErrors.length > 0) {
+            syntaxEditor();
+        }
+    };
+    
+    
 };
 
 /**

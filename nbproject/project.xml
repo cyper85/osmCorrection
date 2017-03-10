@@ -6,6 +6,10 @@
             <name>osmCorrection</name>
         </data>
         <libraries xmlns="http://www.netbeans.org/ns/cdnjs-libraries/1">
+            <library name="1000hz-bootstrap-validator" version="0.11.9">
+                <file localPath="js/libs/1000hz-bootstrap-validator/validator.js" path="validator.js"/>
+                <file localPath="js/libs/1000hz-bootstrap-validator/validator.min.js" path="validator.min.js"/>
+            </library>
             <library name="jquery" version="3.1.1">
                 <file localPath="js/libs/jquery/core.js" path="core.js"/>
                 <file localPath="js/libs/jquery/jquery.js" path="jquery.js"/>
