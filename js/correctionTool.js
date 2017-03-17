@@ -62,12 +62,19 @@ var correctionToolClass = function () {
     var correctData = function (data) {
         for (var i = 0; i < data.elements.length; i++) {
             if (data.elements[i].type === "node") {
+                if(typeof nodes[data.elements[i].id] !== "undefined") {
+                    continue;
+                }
                 nodes[data.elements[i].id] = data.elements[i];
-            }
-            if (data.elements[i].type === "way") {
+            } else if (data.elements[i].type === "way") {
+                if(typeof ways[data.elements[i].id] !== "undefined") {
+                    continue;
+                }
                 ways[data.elements[i].id] = data.elements[i];
-            }
-            if (data.elements[i].type === "relation") {
+            } else if (data.elements[i].type === "relation") {
+                if(typeof relations[data.elements[i].id] !== "undefined") {
+                    continue;
+                }
                 relations[data.elements[i].id] = data.elements[i];
             }
             if (typeof data.elements[i].tags !== "undefined") {
@@ -92,17 +99,88 @@ var correctionToolClass = function () {
         }
     };
     
+    var modifiedElements = [];
+    
     var syntaxError;
     
     var syntaxEditor = function () {
         syntaxError = syntaxErrors.shift();
+        showElement(syntaxError.element);
         syntaxError.plugin.syntaxEditor(syntaxError.tag,syntaxError.element);
     };
     
+    
+    var shownElement = new L.FeatureGroup();;
+    var shownElementBounds;
+    
+    var showNode = function(element) {
+        shownElement.addLayer(new L.circle(L.latLng(element.lat, element.lon),3));
+        if(shownElementBounds === null) {
+            shownElementBounds = new L.latLngBounds(L.latLng(element.lat, element.lon),L.latLng(element.lat, element.lon));
+        } else {
+            shownElementBounds = shownElementBounds.extends(L.latLng(element.lat, element.lon));
+        }
+    };
+    
+    var showWay = function(element) {
+        var way = [];
+        for(var i in element.nodes) {
+            console.log(nodes[element.nodes[i]]);
+            way.push(L.latLng(nodes[element.nodes[i]].lat,nodes[element.nodes[i]].lon));
+        }
+        if(element.nodes[0] === element.nodes[element.nodes.length - 1]) {
+            shownElement.addLayer(L.polygon(way));
+        } else {
+            shownElement.addLayer(L.polyline(way));
+        }
+        if(shownElementBounds === null) {
+            shownElementBounds = new L.latLngBounds(way);
+        } else {
+            for(var i in way) {
+                shownElementBounds = shownElementBounds.extends(way[i]);
+            }
+        }
+    };
+    
+    var showRelation = function(element) {
+        console.log("bah");
+    };
+    
+    var showElement = function(element) {
+        shownElementBounds = null;
+        map.removeLayer(shownElement);
+        shownElement.clearLayers();
+        
+        if(element.type === "node") {
+            showNode(element);
+        } else if (element.type === "way") {
+            showWay(element);
+        } else if (element.type === "relation") {
+            showRelation(element);
+        }
+        map.addLayer(shownElement);
+        
+        map.fitBounds(shownElementBounds);
+    };
+    
     this.syntaxCorrection = function() {
+        
+        var input = $('input#input').val();
+        if(input !== syntaxError.element.tags[syntaxError.tag]) {
+            syntaxError.element.tags[syntaxError.tag] = input;
+            if(modifiedElements.indexOf(syntaxError.element) != -1) {
+                modifiedElements.splice(modifiedElements.indexOf(syntaxError.element),1);
+            }
+            modifiedElements.push(syntaxError.element);
+        }
         // irgendwas speichern
         if(syntaxErrors.length > 0) {
             syntaxEditor();
+            console.log(modifiedElements);
+        } else {
+            $('#syntax').html("");
+            document.getElementById("stateTwo").classList.add("hidden");
+            document.getElementById("stateThree").classList.remove("hidden");
         }
     };
     
