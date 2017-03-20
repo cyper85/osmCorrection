@@ -13,37 +13,43 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
     </head>
     <body>
-        <div id="map"></div>
-        <div class="state" id="stateZero">
-            <button type="button" class="btn btn-default" id="osmLogin">login</button>
-        </div>
-        <div class="state hidden" id="stateOne">
-            <h2>Daten herunterladen</h2>
-            Zoome in die Region, die du bearbeiten willst und wähle die zu korrigierenden Daten:
-            <div id="option-buttions">
-                <button type="button" id="option-tel" class="option tel btn btn-default">Telefonnummern</button>
-                <button type="button" id="option-mail" class="option mail btn btn-default">Emailadressen</button>
-                <button type="button" id="option-url" class="option website btn btn-default">URLs</button>
-                <button type="button" id="option-wiki" class="option wikpedia btn btn-default">Wikipedia</button>
-                <button type="button" id="option-fb" class="option facebook btn btn-default">Facebook</button>
-                <button type="button" id="option-twitter" class="option twitter btn btn-default">Twitter</button>
-                <button type="button" id="option-xing" class="option xing btn btn-default">Xing</button>
-                <button type="button" id="option-linkedin" class="option linkedin btn btn-default">LinkedIn</button>
-                <button type="button" id="download" class="option btn btn-danger hidden">Download</button>
-            </div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-3 col-md-3 col-lg-3 col-xs-12">
+                    <div class="state" id="stateZero">
+                        <button type="button" class="btn btn-default" id="osmLogin">login</button>
+                    </div>
+                    <div class="state hidden" id="stateOne">
+                        <h2>Daten herunterladen</h2>
+                        Zoome in die Region, die du bearbeiten willst und wähle die zu korrigierenden Daten:
+                        <div id="option-buttions">
+                            <button type="button" id="option-tel" class="option tel btn btn-default">Telefonnummern</button>
+                            <button type="button" id="option-mail" class="option mail btn btn-default">Emailadressen</button>
+                            <button type="button" id="option-url" class="option website btn btn-default">URLs</button>
+                            <button type="button" id="option-wiki" class="option wikpedia btn btn-default">Wikipedia</button>
+                            <button type="button" id="option-fb" class="option facebook btn btn-default">Facebook</button>
+                            <button type="button" id="option-twitter" class="option twitter btn btn-default">Twitter</button>
+                            <button type="button" id="option-xing" class="option xing btn btn-default">Xing</button>
+                            <button type="button" id="option-linkedin" class="option linkedin btn btn-default">LinkedIn</button>
+                            <button type="button" id="download" class="option btn btn-danger hidden">Download</button>
+                        </div>
 
-        </div>
-        <div class="state hidden" id="stateTwo">
-            <h2>Daten korrigieren</h2>
-            <p id="syntax"></p>
-        </div>
-        <div class="state hidden" id="stateThree">
-            <h2>Daten speichern</h2>
-            <form class="form-control" role="form">
-                <div class="form-group">
-                    <button id="save" class="form-control btn btn-success">speichern</button>
+                    </div>
+                    <div class="state hidden" id="stateTwo">
+                        <h2>Daten korrigieren</h2>
+                        <p id="syntax"></p>
+                    </div>
+                    <div class="state hidden" id="stateThree">
+                        <h2>Daten speichern</h2>
+                        <form class="form-control" role="form">
+                            <div class="form-group">
+                                <button id="save" class="form-control btn btn-success">speichern</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </form>
+                <div id="map" class="col-sm-offset-3 col-md-offset-3 col-lg-offset-3 col-sm-9 col-md-9 col-lg-9 col-xs-12"></div>
+            </div>
         </div>
         <script src="js/osmauth.min.js"></script>
         <script src="js/libs/leaflet/leaflet.js"></script>

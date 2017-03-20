@@ -23,6 +23,8 @@
  */
 
 
+/* global correctionTool, L */
+
 var auth = osmAuth({
     oauth_consumer_key: 'hvBxA6pLC16IPwWZHSZjimbxSFh5Y5LKFMCENcgq',
     oauth_secret: 'PULRxpiJ8xhLNZgqxkHaFqLtFk3O1bzfXAxETOiq',
@@ -88,6 +90,36 @@ function update() {
     if (auth.authenticated()) {
         document.getElementById("stateZero").classList.add("hidden");
         document.getElementById("stateOne").classList.remove("hidden");
+        
+        auth.xhr({
+            method: 'GET',
+            path: '/api/0.6/user/details'
+        }, function(err, details) {
+            console.log(err);
+            console.log(details);
+        });
+        auth.xhr({
+            method: 'GET',
+            path: '/api/0.6/permissions'
+        }, function(err, details) {
+            console.log(err);
+            console.log(details);
+        });
+        auth.xhr({
+        method: 'PUT',
+        path: '/api/0.6/changeset/create',
+        content:
+            '<?xml version="1.0" encoding="UTF-8"?>'+
+            '<osm version="0.6" generator="JOSM">'+
+                '<changeset>'+
+                    '<tag k="created_by" v="osmCorrection"/>'+
+                    '<tag k="comment" v="Syntax correction and validation"/>'+
+                '</changeset>'+
+            '</osm>'
+        }, function(err, details) {
+            console.log(err);
+            console.log(details);
+        });
     }
     map = L.map('map', {
         center: [50.6841, 10.9171],
@@ -97,5 +129,5 @@ function update() {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'})
         ]
     });
-
+    $("#save").click(correctionTool.save);
 })();

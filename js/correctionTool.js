@@ -176,7 +176,6 @@ var correctionToolClass = function () {
         // irgendwas speichern
         if(syntaxErrors.length > 0) {
             syntaxEditor();
-            console.log(modifiedElements);
         } else {
             $('#syntax').html("");
             document.getElementById("stateTwo").classList.add("hidden");
@@ -184,7 +183,136 @@ var correctionToolClass = function () {
         }
     };
     
+    /**
+     * Erzeugt XML-Modifycode für Node
+     * @param {OSMElement} element
+     * @param int changesetID
+     * @returns {Element|correctionToolClass.saveNode.node}
+     */
+    var saveNode = function(element,changesetID) {
+        var node = document.createElement('node');
+        
+        // ID
+        var id = document.createAttribute('id');
+        id.value = element.id;
+        node.setAttributeNode(id);
+        
+        // Changeset
+        var changeset = document.createAttribute('changeset');
+        changeset.value = changesetID;
+        node.setAttributeNode(changeset);
+        
+        // Version
+        var version = document.createAttribute('version');
+        version.value = element.version+1;
+        node.setAttributeNode(version);
+        
+        // Lat
+        var lat = document.createAttribute('lat');
+        lat.value = element.lat;
+        node.setAttributeNode(lat);
+        
+        // Lon
+        var lon = document.createAttribute('lon');
+        lon.value = element.lon;
+        node.setAttributeNode(lon);
+        
+        
+        return node;
+    } 
     
+    /**
+     * Erzeugt XML-Modifycode für Way
+     * @param {OSMElement} element
+     * @param int changesetID
+     * @returns {Element|correctionToolClass.saveNode.node}
+     */
+    var saveWay = function(element,changesetID) {
+        
+    } 
+    
+    /**
+     * Erzeugt XML-Modifycode für Relation
+     * @param {OSMElement} element
+     * @param int changesetID
+     * @returns {Element|correctionToolClass.saveNode.node}
+     */
+    var saveRelation = function(element,changesetID) {
+        
+    };
+    
+    
+    /**
+     * Öffne Changeset
+     */
+    this.openChangeset = function() {
+        auth.xhr({
+            method: 'PUT',
+            path: '/api/0.6/changeset/create',
+            content: '<?xml version="1.0" encoding="UTF-8"?>'+
+                    '<osm version="0.6" generator="JOSM">'+
+                    '<changeset>'+
+                        '<tag k="created_by" v="osmCorrection"/>'+
+                        '<tag k="comment" v="Syntax correction and validation"/>'+
+                    '</changeset>'+
+                '</osm>'
+        }, correctionTool.modifyChangeset);
+    };
+    
+    /**
+     * Erzeuge Modify-Request für Changeset
+     * @param {error} err
+     * @param {xhr} data
+     */
+    this.modifyChangeset = function(err, data) {
+        console.log(err);
+        console.log(data);/*
+        var osmChange = document.createElement('osmChange');
+            
+            //Version
+            var version = document.createAttribute('version');
+            version.value = '0.6';
+            osmChange.setAttributeNode(version);
+            
+            // Generator
+            var generator = document.createAttribute('generator');
+            generator.value = 'osmCorrectionTool';
+            osmChange.setAttributeNode(generator);
+            
+            var modify = document.createElement('modify');
+            
+            for(var i in modifiedElements) {
+                if(modifiedElements[i].type === "node") {
+                    modify.appendChild(saveNode(modifiedElements[i]));
+                } else if(modifiedElements[i].type === "way") {
+                    modify.appendChild(saveWay(modifiedElements[i]));
+                } else if(modifiedElements[i].type === "relation") {
+                    modify.appendChild(saveRelation(modifiedElements[i]));
+                }
+            }
+            
+            generator.appendChild(modify);*/
+    };
+    
+    /**
+     * Schließe Changeset
+     */
+    this.closeChangeset = function() {
+        var xml = '<osm><changeset><tag k="created_by" v="osmCorrection"/><tag k="comment" v="Syntax correction and validation"/></changeset></osm>';
+    };
+    
+    /**
+     * Speichere Änderungen in OSM
+     * @returns {Boolean}
+     */
+    this.save = function() {
+        if(modifiedElements.length>0) {
+            correctionTool.openChangeset();                
+        } else {
+            console.log(modifiedElements);
+        }
+        return false;
+    };
 };
 
 /**
@@ -221,4 +349,18 @@ var correctionObjectClass = function () {
     
     
     this.correctionObjectClass = function() {};
+    
+    this.editorForm = function(label,value,type) {
+        var div = $('<div />').addClass("syntaxElement").addClass("form-group").addClass("panel").addClass("panel-"+type).append(
+            $("<label />").attr("for","input").addClass("control-label").addClass("panel-heading").html(label)).append(
+            $("<input />").attr("id","input").addClass("form-control").addClass("panel-body").attr("type","text").attr("pattern","\\+(?:[0-9][ -]?){6,14}[0-9]").val(value));
+        var form = $('<form />').attr("role","form").append(div).append(
+                $("<button />").addClass("btn").addClass("btn-success").html("weiter").click(correctionTool.syntaxCorrection));
+        return form;
+        $('#syntax').html("");
+        $('#syntax').append(form);
+        $('#syntax form').validator();
+        $('#syntax form input').focus();
+    };
+    
 };

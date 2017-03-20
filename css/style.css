@@ -25,19 +25,9 @@ THE SOFTWARE.
     Created on : 02.10.2016, 20:12:28
     Author     : Andreas
 */
-button.btn {
-  width: 100%; }
-
 div#map {
   height: 100%;
-  position: fixed;
-  top: 0px;
-  right: 0px;
-  bottom: 0px;
-  left: 200px; }
-
-div.state {
-  width: 200px; }
+  position: absolute; }
 
 .hidden {
   display: none; }
