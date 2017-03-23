@@ -1,0 +1,14 @@
+{
+   "compileOnSave": true,
+    "compilerOptions": {
+        "outFile":"./js/main2.js",
+        "module": "amd",
+        "inlineSources": true,
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "allowJs":true,
+       "types" : ["jquery", "leaflet"]
+    }
+}

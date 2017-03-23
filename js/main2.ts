@@ -1,4 +1,3 @@
-
 /* 
  * The MIT License
  *
@@ -23,9 +22,15 @@
  * THE SOFTWARE.
  */
 
-
-/* global correctionTool, L */
-
+/* global L */
+import * as $ from "./libs/jquery/jquery";
+(<any>window).jQuery = $;  
+import * as osmAuth from "./osmauth";
+//import { correctionToolClass } from "./correctionTool";
+//import { correctionObject } from "./correctionObject";
+ 
+import "bootstrap";
+//
 var auth = osmAuth({
     oauth_consumer_key: 'hvBxA6pLC16IPwWZHSZjimbxSFh5Y5LKFMCENcgq',
     oauth_secret: 'PULRxpiJ8xhLNZgqxkHaFqLtFk3O1bzfXAxETOiq',
@@ -41,8 +46,8 @@ document.getElementById('osmLogin').onclick = function () {
     });
 };
 
-var downloadOptions = [];
-var options = document.getElementsByClassName("option");
+let downloadOptions: string[];
+let options: HTMLCollectionOf<Element> = document.getElementsByClassName("option");
 for (var i = 0; i < options.length; i++) {
     options[i].onclick = function () {
         if (this.classList.contains('btn-default')) {
@@ -63,7 +68,7 @@ for (var i = 0; i < options.length; i++) {
 document.getElementById("download").onclick = function () {
     document.getElementById("stateOne").classList.add("hidden");
     // Abzufragende Daten sammeln
-    for (key in downloadOptions) {
+    for (let key in downloadOptions) {
         $.getScript( "js/"+downloadOptions[key]+".js");
     }
     // Abfrage absenden

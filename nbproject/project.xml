@@ -33,6 +33,16 @@
                 <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js" path="leaflet-providers.min.js"/>
                 <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js.map" path="leaflet-providers.min.js.map"/>
             </library>
+            <library name="systemjs" version="0.20.10">
+                <file localPath="js/libs/systemjs/system-production.js" path="system-production.js"/>
+                <file localPath="js/libs/systemjs/system-production.js.map" path="system-production.js.map"/>
+                <file localPath="js/libs/systemjs/system-production.src.js" path="system-production.src.js"/>
+                <file localPath="js/libs/systemjs/system-production.src.js.map" path="system-production.src.js.map"/>
+                <file localPath="js/libs/systemjs/system.js" path="system.js"/>
+                <file localPath="js/libs/systemjs/system.js.map" path="system.js.map"/>
+                <file localPath="js/libs/systemjs/system.src.js" path="system.src.js"/>
+                <file localPath="js/libs/systemjs/system.src.js.map" path="system.src.js.map"/>
+            </library>
         </libraries>
     </configuration>
 </project>
