@@ -22,14 +22,13 @@
  * THE SOFTWARE.
  */
 
-/* global L */
-import * as $ from "./libs/jquery/jquery";
-(<any>window).jQuery = $;  
-import * as osmAuth from "./osmauth";
-//import { correctionToolClass } from "./correctionTool";
+//import * as $ from "./libs/jquery/jquery";
+//(<any>window).jQuery = $;
+import * as osmAuth from "./osmauth.js";
+import { correctionToolClass } from "./correctionTool";
+
 //import { correctionObject } from "./correctionObject";
- 
-import "bootstrap";
+//import "bootstrap";
 //
 var auth = osmAuth({
     oauth_consumer_key: 'hvBxA6pLC16IPwWZHSZjimbxSFh5Y5LKFMCENcgq',
@@ -39,6 +38,7 @@ var auth = osmAuth({
 });
 
 var map;
+var correctionTool;
 
 document.getElementById('osmLogin').onclick = function () {
     auth.authenticate(function () {
@@ -49,7 +49,7 @@ document.getElementById('osmLogin').onclick = function () {
 let downloadOptions: string[];
 let options: HTMLCollectionOf<Element> = document.getElementsByClassName("option");
 for (var i = 0; i < options.length; i++) {
-    options[i].onclick = function () {
+    options[i].addEventListener('click', function () {
         if (this.classList.contains('btn-default')) {
             downloadOptions.push(this.id.replace("option-", ""));
         } else {
@@ -62,7 +62,7 @@ for (var i = 0; i < options.length; i++) {
         }
         this.classList.toggle('btn-default');
         this.classList.toggle('btn-primary');
-    };
+    });
 }
 
 document.getElementById("download").onclick = function () {
@@ -97,6 +97,8 @@ function update() {
         document.getElementById("stateZero").classList.add("hidden");
         document.getElementById("stateOne").classList.remove("hidden");
     }
+    
+    correctionTool = new correctionToolClass();
     map = L.map('map', {
         center: [50.6841, 10.9171],
         zoom: 15,

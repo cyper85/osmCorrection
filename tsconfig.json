@@ -1,5 +1,4 @@
 {
-   "compileOnSave": true,
     "compilerOptions": {
         "outFile":"./js/main2.js",
         "module": "amd",
@@ -9,6 +8,16 @@
         "preserveConstEnums": true,
         "sourceMap": true,
         "allowJs":true,
-       "types" : ["jquery", "leaflet"]
-    }
+        "types" : ["jquery", "leaflet"]
+    },
+    "files": [
+        "js/osmObjectInterface.ts",
+        "js/correctionObject.ts",
+        "js/correctionTool.ts",
+        "js/main2.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "js/libs/**/*"
+    ]
 }

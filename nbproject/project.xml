@@ -33,6 +33,11 @@
                 <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js" path="leaflet-providers.min.js"/>
                 <file localPath="js/libs/leaflet-providers/leaflet-providers.min.js.map" path="leaflet-providers.min.js.map"/>
             </library>
+            <library name="require.js" version="2.3.3">
+                <file localPath="js/libs/require.js/require.js" path="require.js"/>
+                <file localPath="js/libs/require.js/require.min.js" path="require.min.js"/>
+                <file localPath="js/libs/require.js/require.min.js.map" path="require.min.js.map"/>
+            </library>
             <library name="systemjs" version="0.20.10">
                 <file localPath="js/libs/systemjs/system-production.js" path="system-production.js"/>
                 <file localPath="js/libs/systemjs/system-production.js.map" path="system-production.js.map"/>

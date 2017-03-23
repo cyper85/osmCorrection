@@ -1,3 +1,4 @@
+/// <reference path="correctionTool.ts"/>
 /* 
  * The MIT License
  *
@@ -22,9 +23,12 @@
  * THE SOFTWARE.
  */
 
+import { correctionToolClass } from "./correctionTool";
+import { osmObject } from "./osmObjectInterface";
+
 declare var correctionTool: correctionToolClass;
 
-abstract class correctionObjectClass {
+export abstract class correctionObjectClass {
     id = "";
     downloadTags: string[];
 

@@ -23,8 +23,12 @@
  */
 
 declare var map: L.Map;
+import { correctionObjectClass } from "./correctionObject";
+import { osmObject,overpassObject,syntaxErrorObject } from "./osmObjectInterface";
 
-class correctionToolClass { 
+declare var auth: any;
+
+export class correctionToolClass { 
     /**
      * correctionObjects
      * @type Array
@@ -183,7 +187,7 @@ class correctionToolClass {
      * @param int changesetID
      * @returns {Element|correctionToolClass.saveNode.node}
      */
-    saveNode(element:any,changesetID:string):Element {
+    saveNode(element:osmObject):Element {
         var node = document.createElement('node');
         
         // ID
@@ -193,24 +197,38 @@ class correctionToolClass {
         
         // Changeset
         var changeset = document.createAttribute('changeset');
-        changeset.value = changesetID;
+        changeset.value = this.changesetID;
         node.setAttributeNode(changeset);
         
         // Version
         var version = document.createAttribute('version');
-        version.value = element.version+1;
+        version.value = String(element.version+1);
         node.setAttributeNode(version);
         
         // Lat
         var lat = document.createAttribute('lat');
-        lat.value = element.lat;
+        lat.value = String(element.lat);
         node.setAttributeNode(lat);
         
         // Lon
         var lon = document.createAttribute('lon');
-        lon.value = element.lon;
+        lon.value = String(element.lon);
         node.setAttributeNode(lon);
         
+        // Tags
+        for(var key in element.tags) {
+            var tag = document.createElement('tag');
+            
+            var k = document.createAttribute('k');
+            k.value = key;
+            tag.setAttributeNode(k);
+            
+            var v = document.createAttribute('v');
+            v.value = element.tags[key];
+            tag.setAttributeNode(v);
+            
+            node.appendChild(tag);
+        }
         
         return node;
     } 
@@ -221,37 +239,52 @@ class correctionToolClass {
      * @param int changesetID
      * @returns {Element|correctionToolClass.saveNode.node}
      */
-    saveWay(element:any,changesetID:string):Element {
-        var node = document.createElement('node');
+    saveWay(element:osmObject):Element {
+        var way = document.createElement('way');
         
         // ID
         var id = document.createAttribute('id');
         id.value = element.id;
-        node.setAttributeNode(id);
+        way.setAttributeNode(id);
         
         // Changeset
         var changeset = document.createAttribute('changeset');
-        changeset.value = changesetID;
-        node.setAttributeNode(changeset);
+        changeset.value = this.changesetID;
+        way.setAttributeNode(changeset);
         
         // Version
         var version = document.createAttribute('version');
-        version.value = element.version+1;
-        node.setAttributeNode(version);
+        version.value = String(element.version+1);
+        way.setAttributeNode(version);
         
-        // Lat
-        var lat = document.createAttribute('lat');
-        lat.value = element.lat;
-        node.setAttributeNode(lat);
+        // Tags
+        for(var key in element.tags) {
+            var tag = document.createElement('tag');
+            
+            var k = document.createAttribute('k');
+            k.value = key;
+            tag.setAttributeNode(k);
+            
+            var v = document.createAttribute('v');
+            v.value = element.tags[key];
+            tag.setAttributeNode(v);
+            
+            way.appendChild(tag);
+        }
         
-        // Lon
-        var lon = document.createAttribute('lon');
-        lon.value = element.lon;
-        node.setAttributeNode(lon);
+        // Nodes
+        for(var key in element.nodes) {
+            var nd = document.createElement('nd');
+            
+            var ref = document.createAttribute('ref');
+            ref.value = element.nodes[key];
+            nd.setAttributeNode(ref);
+            
+            way.appendChild(nd);
+        }
         
-        
-        return node;
-    } 
+        return way;
+    };
     
     /**
      * Erzeugt XML-Modifycode für Relation
@@ -259,36 +292,59 @@ class correctionToolClass {
      * @param int changesetID
      * @returns {Element|correctionToolClass.saveNode.node}
      */
-    saveRelation(element:any,changesetID:string):Element {
-        var node = document.createElement('node');
+    saveRelation(element:osmObject):Element {
+        var relation = document.createElement('relation');
         
         // ID
         var id = document.createAttribute('id');
         id.value = element.id;
-        node.setAttributeNode(id);
+        relation.setAttributeNode(id);
         
         // Changeset
         var changeset = document.createAttribute('changeset');
-        changeset.value = changesetID;
-        node.setAttributeNode(changeset);
+        changeset.value = this.changesetID;
+        relation.setAttributeNode(changeset);
         
         // Version
         var version = document.createAttribute('version');
-        version.value = element.version+1;
-        node.setAttributeNode(version);
+        version.value = String(element.version+1);
+        relation.setAttributeNode(version);
         
-        // Lat
-        var lat = document.createAttribute('lat');
-        lat.value = element.lat;
-        node.setAttributeNode(lat);
+        // Tags
+        for(var key in element.tags) {
+            var tag = document.createElement('tag');
+            
+            var k = document.createAttribute('k');
+            k.value = key;
+            tag.setAttributeNode(k);
+            
+            var v = document.createAttribute('v');
+            v.value = element.tags[key];
+            tag.setAttributeNode(v);
+            
+            relation.appendChild(tag);
+        }
         
-        // Lon
-        var lon = document.createAttribute('lon');
-        lon.value = element.lon;
-        node.setAttributeNode(lon);
+        // Members
+        for(var key in element.members) {
+            var member = document.createElement('member');
+            
+            var type = document.createAttribute('type');
+            type.value = element.members[key].type;
+            member.setAttributeNode(type);
+            
+            var role = document.createAttribute('role');
+            role.value = element.members[key].role;
+            member.setAttributeNode(role);
+            
+            var ref = document.createAttribute('ref');
+            ref.value = element.members[key].ref;
+            member.setAttributeNode(ref);
+            
+            relation.appendChild(member);
+        }
         
-        
-        return node;
+        return relation;
     };
     
     
@@ -299,24 +355,24 @@ class correctionToolClass {
         auth.xhr({
             method: 'PUT',
             path: '/api/0.6/changeset/create',
+            options: {header: {"Content-Type": "text/xml"}},
             content: '<?xml version="1.0" encoding="UTF-8"?>'+
                     '<osm version="0.6" generator="JOSM">'+
                     '<changeset>'+
-                        '<tag k="created_by" v="osmCorrection"/>'+
+                        '<tag k="created_by" v="osmCorrection v0.0.1"/>'+
                         '<tag k="comment" v="Syntax correction and validation"/>'+
                     '</changeset>'+
                 '</osm>'
         }, this.modifyChangeset);
     };
     
-    /**
-     * Erzeuge Modify-Request für Changeset
-     * @param {error} err
-     * @param {xhr} data
-     */
-    modifyChangeset(err: any, data:Object):void {
+    private changesetID: string;
+    modifyChangeset(err: any, data:string):void {
         console.log(err);
-        console.log(data);/*
+        console.log(data);
+        if ((!err) && data.length > 0) {
+            this.changesetID = data;
+        }
         var osmChange = document.createElement('osmChange');
             
             //Version
@@ -331,24 +387,36 @@ class correctionToolClass {
             
             var modify = document.createElement('modify');
             
-            for(var i in modifiedElements) {
-                if(modifiedElements[i].type === "node") {
-                    modify.appendChild(saveNode(modifiedElements[i]));
-                } else if(modifiedElements[i].type === "way") {
-                    modify.appendChild(saveWay(modifiedElements[i]));
-                } else if(modifiedElements[i].type === "relation") {
-                    modify.appendChild(saveRelation(modifiedElements[i]));
+            for(var i in this.modifiedElements) {
+                if(this.modifiedElements[i].type === "node") {
+                    modify.appendChild(this.saveNode(this.modifiedElements[i]));
+                } else if(this.modifiedElements[i].type === "way") {
+                    modify.appendChild(this.saveWay(this.modifiedElements[i]));
+                } else if(this.modifiedElements[i].type === "relation") {
+                    modify.appendChild(this.saveRelation(this.modifiedElements[i]));
                 }
             }
             
-            generator.appendChild(modify);*/
+            osmChange.appendChild(modify);
+        auth.xhr({
+            method: 'POST',
+            path: '/api/0.6/changeset/' + this.changesetID+'/upload',
+            options: {header: {"Content-Type": "text/xml"}},
+            content: '<?xml version="1.0" encoding="UTF-8"?>'+
+            osmChange.outerHTML
+        }, this.closeChangeset);
+            
+            
     }
     
     /**
      * Schließe Changeset
      */
     closeChangeset():void {
-        var xml = '<osm><changeset><tag k="created_by" v="osmCorrection"/><tag k="comment" v="Syntax correction and validation"/></changeset></osm>';
+        auth.xhr({
+            method: 'PUT',
+            path: '/api/0.6/changeset/' + this.changesetID+'/close'
+        });
     }
     
     /**
@@ -363,4 +431,4 @@ class correctionToolClass {
         }
         return false;
     };
-}
+};

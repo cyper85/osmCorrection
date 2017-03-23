@@ -21,20 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+import { correctionObjectClass } from "./correctionObject";
 
-interface osmObject {
+export interface osmObject {
     type:   string;
     id:     string;
+    version:    number;
     tags:   {[key: string]: string};
     // Nodes:
     lat:    number;
     lon:    number;
     // Ways:
     nodes: string[];
+    // Relations:
+    members: {
+        type: string;
+        ref: string;
+        role: string;
+    }[];
 }
 
 
-interface overpassObject {
+export interface overpassObject {
     version:   string;
     generator:     string;
     osm3s:   {
@@ -45,7 +53,7 @@ interface overpassObject {
 }
 
 
-interface syntaxErrorObject {
+export interface syntaxErrorObject {
     element:    osmObject;
     tag:    string;
     plugin: correctionObjectClass;
