@@ -107,11 +107,6 @@ export abstract class correctionObjectClass {
     syntaxEditor(tag: string, element: osmObject) {
         $('#syntax').html("");
         $('#syntax').append(this.editorForm(tag, element.tags[tag]));
-        $('#syntax form input').change(function(){
-            if(this.osmValidation.phone($(this).val())) {
-                
-            }
-        });
         $('#syntax form input').focus();
     }
     
