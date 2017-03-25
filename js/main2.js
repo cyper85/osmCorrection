@@ -10,6 +10,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 define("correctionTool", ["require", "exports"], function (require, exports) {
     "use strict";
+    exports.__esModule = true;
     var correctionToolClass = (function () {
         function correctionToolClass(auth, map) {
             this.callbacks = [];
@@ -684,6 +685,7 @@ if (typeof osmValidation === "undefined") {
 })();
 define("correctionObject", ["require", "exports", "libs/osmValidation/osmValidation"], function (require, exports, ov) {
     "use strict";
+    exports.__esModule = true;
     var correctionObjectClass = (function () {
         function correctionObjectClass(correctionTool) {
             this.id = "";
@@ -746,10 +748,6 @@ define("correctionObject", ["require", "exports", "libs/osmValidation/osmValidat
         correctionObjectClass.prototype.syntaxEditor = function (tag, element) {
             $('#syntax').html("");
             $('#syntax').append(this.editorForm(tag, element.tags[tag]));
-            $('#syntax form input').change(function () {
-                if (this.osmValidation.phone($(this).val())) {
-                }
-            });
             $('#syntax form input').focus();
         };
         return correctionObjectClass;
@@ -758,9 +756,11 @@ define("correctionObject", ["require", "exports", "libs/osmValidation/osmValidat
 });
 define("osmObjectInterface", ["require", "exports"], function (require, exports) {
     "use strict";
+    exports.__esModule = true;
 });
 define("tel", ["require", "exports", "correctionObject"], function (require, exports, correctionObject_1) {
     "use strict";
+    exports.__esModule = true;
     var correctTelephone = (function (_super) {
         __extends(correctTelephone, _super);
         function correctTelephone() {
@@ -792,6 +792,7 @@ define("tel", ["require", "exports", "correctionObject"], function (require, exp
 });
 define("main2", ["require", "exports", "correctionTool", "tel"], function (require, exports, correctionTool_1, tel_1) {
     "use strict";
+    exports.__esModule = true;
     var auth = new osmAuth({
         oauth_consumer_key: 'hvBxA6pLC16IPwWZHSZjimbxSFh5Y5LKFMCENcgq',
         oauth_secret: 'PULRxpiJ8xhLNZgqxkHaFqLtFk3O1bzfXAxETOiq',
