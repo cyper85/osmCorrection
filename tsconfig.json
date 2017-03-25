@@ -8,11 +8,12 @@
         "preserveConstEnums": true,
         "sourceMap": true,
         "allowJs":true,
-        "types" : ["jquery", "leaflet"]
+        "types" : ["jquery", "leaflet","bootstrap-validator"]
     },
     "files": [
         "js/osmObjectInterface.ts",
         "js/correctionObject.ts",
+        "js/tel.ts",
         "js/correctionTool.ts",
         "js/main2.ts"
     ],

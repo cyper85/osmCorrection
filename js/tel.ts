@@ -1,7 +1,7 @@
 /* 
  * The MIT License
  *
- * Copyright 2017 Andreas Neumann <andr.neumann@googlemail.com>.
+ * Copyright 2017 andreas.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,47 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 import { correctionObjectClass } from "./correctionObject";
+import { osmObject } from "./osmObjectInterface";
 
-export interface osmObject {
-    type:   string;
-    id:     number;
-    tags:   {[key: string]: string};
-    
-    // MetaDaten
-    timestamp: string;
-    version: number;
-    changeset: number;
-    
-    // Nodes:
-    lat:    number;
-    lon:    number;
-    
-    // Ways:
-    nodes: number[];
-    
-    // Relations:
-    members: {
-        type: string;
-        ref: number;
-        role: string;
-    }[];
-}
+export class correctTelephone extends correctionObjectClass {
+    id = "tel";
 
+    downloadTags = ["contact:phone", "phone", "contact:fax", "fax"];
 
-export interface overpassObject {
-    version:   string;
-    generator:     string;
-    osm3s:   {
-        timestamp_osm_base: string;
-        copyright: string
+    correctingSyntax(element: osmObject) {
+        var answer = [];
+        if (typeof element.tags !== "undefined") {
+            var regex = /^\+(?:[0-9][ -]?){6,14}[0-9]$/;
+            for (var key in this.downloadTags) {
+                if (typeof element.tags[this.downloadTags[key]] !== "undefined") {
+                    if (!this.osmValidation.phone(element.tags[this.downloadTags[key]])) {
+                        answer.push(this.downloadTags[key]);
+                    }
+                }
+            }
+        }
+        return answer;
     };
-    elements: osmObject[];
-}
-
-
-export interface syntaxErrorObject {
-    element:    osmObject;
-    tag:    string;
-    plugin: correctionObjectClass;
+    
+    syntaxValidator = this.osmValidation.phone;
+    syntaxValidationHint = "";
 }

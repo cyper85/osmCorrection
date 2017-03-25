@@ -28,6 +28,12 @@ THE SOFTWARE.
 div#map {
   height: 100%;
   position: absolute; }
+  div#map .leaflet-control-search .search-button {
+    width: 30px;
+    height: 30px;
+    background-position: 4px 4px; }
+  div#map .leaflet-control-search .search-input {
+    height: 22px; }
 
 .hidden {
   display: none; }

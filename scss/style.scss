@@ -27,12 +27,20 @@ THE SOFTWARE.
 */
 
 div#map {
-  height: 100%;
-  position: absolute;
+    height: 100%;
+    position: absolute;
+    .leaflet-control-search {
+     .search-button {
+        width:30px;
+        height:30px;	
+        background-position: 4px 4px;
+    }
+    .search-input {
+     height:22px;   
+    }
+    }
 }
 
 .hidden {
-  display: none;
+    display: none;
 }
-
-    

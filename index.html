@@ -9,7 +9,8 @@
         <link rel="shortcut icon" href="images/logo.ico">
         <link rel="icon" href="images/logo.svg" sizes="any" type="image/svg+xml">
         <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="css/bootstrap.min.css" />
+        <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+        <link href="js/libs/leaflet-search/src/leaflet-search.css" rel="stylesheet" type="text/css"/>
     </head>
     <body>
         <div class="container-fluid">
@@ -30,7 +31,7 @@
                             <button type="button" id="option-twitter" class="option twitter btn btn-default">Twitter</button>
                             <button type="button" id="option-xing" class="option xing btn btn-default">Xing</button>
                             <button type="button" id="option-linkedin" class="option linkedin btn btn-default">LinkedIn</button>
-                            <button type="button" id="download" class="option btn btn-danger hidden">Download</button>
+                            <button type="button" id="download" class="btn btn-danger hidden">Download</button>
                         </div>
 
                     </div>
@@ -50,18 +51,46 @@
                 <div id="map" class="col-sm-offset-3 col-md-offset-3 col-lg-offset-3 col-sm-9 col-md-9 col-lg-9 col-xs-12"></div>
             </div>
         </div>
-        <!--<script src="js/osmauth.min.js"></script>-->
+        <script src="js/osmauth.min.js"></script>
         <script src="js/libs/leaflet/leaflet.js" type="text/javascript"></script>
+        <script src="js/Leaflet.Control.Custom.js" type="text/javascript"></script>
         <script src="js/libs/jquery/jquery.js" type="text/javascript"></script>
         <script src="js/bootstrap.min.js" type="text/javascript"></script>
         <script src="js/libs/1000hz-bootstrap-validator/validator.min.js" type="text/javascript"></script>
-        <!--<script src="js/correctionTool.js"></script>-->
-        <!--<script src="js/osmauth.js" type="text/javascript"></script>-->
-        <script data-main="js/main2" src="js/libs/require.js/require.min.js" type="text/javascript"></script>
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
+        <script src="js/libs/leaflet-search/src/leaflet-search.js" type="text/javascript"></script>
+        <script src="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+        <script src="js/libs/require.js/require.min.js" type="text/javascript"></script>
         <script>
-            require([ 'main2' ]);
+            require.config({
+                baseUrl: "js"
+            });
+            var map;
+            var test = require(['main2'], function (main2) {
+                var lc = L.control.locate({
+                    flyTo: true,
+                    cacheLocation: true,
+                    drawCircle: false,
+                    drawMarker: false,
+                    showPopup: false,
+                    locateOptions: {
+                        maxZoom: 15
+                    }
+                }).addTo(map);
+                var search = new L.Control.Search({
+                    url: 'http://nominatim.openstreetmap.org/search?format=json&q={s}',
+                    jsonpParam: 'json_callback',
+                    propertyName: 'display_name',
+                    propertyLoc: ['lat', 'lon'],
+                    autoCollapse: true,
+                    autoType: false,
+                    minLength: 2,
+                    textPlaceholder: "Suche…",
+                    textErr: "Nichts gefunden",
+                    marker: false
+                }).addTo(map);
+            });
         </script>
-        <!--<script src="js/main2.js" type="text/javascript"></script>-->
-
     </body>
 </html>

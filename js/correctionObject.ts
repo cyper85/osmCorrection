@@ -1,4 +1,3 @@
-/// <reference path="correctionTool.ts"/>
 /* 
  * The MIT License
  *
@@ -26,34 +25,94 @@
 import { correctionToolClass } from "./correctionTool";
 import { osmObject } from "./osmObjectInterface";
 
+//import * as ov from "./libs/osmValidation/osmValidation.js";
+import ov = require("./libs/osmValidation/osmValidation.js");
+
 declare var correctionTool: correctionToolClass;
 
 export abstract class correctionObjectClass {
     id = "";
+    
+    syntaxValidationHint: string;
+    syntaxValidator: Function;
+    
     downloadTags: string[];
+    correctionTool: correctionToolClass;
+    osmValidation: any;
 
     getTags() {
         return this.downloadTags;
     }
     
-    done() {
-        correctionTool.registerObject(this);
+    constructor(correctionTool: correctionToolClass) {
+        this.correctionTool = correctionTool;
+        this.osmValidation = ov;
     }
     
     abstract correctingSyntax(element: osmObject):string[];
     
-    syntaxEditor = function(tag: string, element: any) {}
-    
-    
-    correctionObjectClass() {}
-    
     editorForm(label: string, value: string, type: string = "error"):JQuery {
-        let div = $('<div />').addClass("syntaxElement").addClass("form-group").addClass("panel").addClass("panel-"+type).append(
-            $("<label />").attr("for","input").addClass("control-label").addClass("panel-heading").html(label)).append(
-            $("<input />").attr("id","input").addClass("form-control").addClass("panel-body").attr("type","text").attr("pattern","\\+(?:[0-9][ -]?){6,14}[0-9]").val(value));
-        let form = $('<form />').attr("role","form").append(div).append(
-                $("<button />").addClass("btn").addClass("btn-success").html("weiter").click(correctionTool.syntaxCorrection));
+        var self = this;
+        let div = $('<div />')
+            .addClass("syntaxElement")
+            .addClass("form-group")
+            .addClass("panel")
+            .addClass("panel-"+type)
+            .append(
+                $("<label />")
+                    .attr("for","input")
+                    .addClass("control-label")
+                    .addClass("panel-heading")
+                    .html(label))
+            .append(
+                $("<input />")
+                    .attr("id","input")
+                    .addClass("form-control")
+                    .addClass("panel-body")
+                    .attr("type","text")
+                    .val(value)
+                    .keyup(function(){
+                        if (self.syntaxValidator($(this).val())) {
+                            $(this).removeClass('invalid');
+                            $(this).parent().parent().children("input[type=submit]").prop('disabled', false);
+                        } else {
+                            $(this).addClass('invalid');
+                            $(this).parent("form").children("input[type=submit]").prop('disabled', true);
+                        }
+                    }));
+        let form = $('<form />')
+            .attr("role","form")
+            .append(div)
+            .append(
+                $("<input />")
+                    .attr("type","submit")
+                    .addClass("btn")
+                    .prop('disabled', true)
+                    .addClass("btn-success")
+                    .html("weiter")
+                    .click(function(){
+                        self.correctionTool.syntaxCorrection();
+                    }))
+            .append(
+                $("<button />")
+                    .addClass("btn")
+                    .addClass("btn-danger")
+                    .html("überspringen")
+                    .click(function(){
+                        self.correctionTool.syntaxCorrectionSkip();
+            }));
+        
         return form;
+    }
+    syntaxEditor(tag: string, element: osmObject) {
+        $('#syntax').html("");
+        $('#syntax').append(this.editorForm(tag, element.tags[tag]));
+        $('#syntax form input').change(function(){
+            if(this.osmValidation.phone($(this).val())) {
+                
+            }
+        });
+        $('#syntax form input').focus();
     }
     
 }

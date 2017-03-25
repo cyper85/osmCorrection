@@ -1,3 +1,4 @@
+/// <reference path="../typings/globals/osmauth/index.d.ts" />
 /* 
  * The MIT License
  *
@@ -24,21 +25,21 @@
 
 //import * as $ from "./libs/jquery/jquery";
 //(<any>window).jQuery = $;
-import * as osmAuth from "./osmauth.js";
+//import * as o from "./osmauth.js";
 import { correctionToolClass } from "./correctionTool";
+import { correctTelephone } from "./tel";
 
-//import { correctionObject } from "./correctionObject";
-//import "bootstrap";
-//
-var auth = osmAuth({
+declare var map: L.Map;
+
+var auth = new osmAuth({
     oauth_consumer_key: 'hvBxA6pLC16IPwWZHSZjimbxSFh5Y5LKFMCENcgq',
     oauth_secret: 'PULRxpiJ8xhLNZgqxkHaFqLtFk3O1bzfXAxETOiq',
     auto: true,
+    url:    'https://www.openstreetmap.org',
     landing: 'land.html'
 });
 
-var map;
-var correctionTool;
+let correctionTool: correctionToolClass;
 
 document.getElementById('osmLogin').onclick = function () {
     auth.authenticate(function () {
@@ -46,10 +47,9 @@ document.getElementById('osmLogin').onclick = function () {
     });
 };
 
-let downloadOptions: string[];
-let options: HTMLCollectionOf<Element> = document.getElementsByClassName("option");
-for (var i = 0; i < options.length; i++) {
-    options[i].addEventListener('click', function () {
+let downloadOptions: string[] = [];
+
+$('.option').click(function() {
         if (this.classList.contains('btn-default')) {
             downloadOptions.push(this.id.replace("option-", ""));
         } else {
@@ -62,20 +62,23 @@ for (var i = 0; i < options.length; i++) {
         }
         this.classList.toggle('btn-default');
         this.classList.toggle('btn-primary');
-    });
-}
-
-document.getElementById("download").onclick = function () {
+    
+});
+$('#download').click(function () {
     document.getElementById("stateOne").classList.add("hidden");
     // Abzufragende Daten sammeln
     for (let key in downloadOptions) {
-        $.getScript( "js/"+downloadOptions[key]+".js");
+        switch(downloadOptions[key]) {
+            case "tel":
+                correctionTool.registerObject(new correctTelephone(correctionTool));
+                break;
+        };
     }
     // Abfrage absenden
     // Validator anschmeissen
     // Fehler anzeigen
     document.getElementById("stateTwo").classList.remove("hidden");
-};
+});
 
 function update() {
     if (auth.authenticated()) {
@@ -92,13 +95,11 @@ function update() {
     }
 }
 
-(function () {
-    if (auth.authenticated()) {
+if (auth.authenticated()) {
         document.getElementById("stateZero").classList.add("hidden");
         document.getElementById("stateOne").classList.remove("hidden");
     }
     
-    correctionTool = new correctionToolClass();
     map = L.map('map', {
         center: [50.6841, 10.9171],
         zoom: 15,
@@ -107,5 +108,6 @@ function update() {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'})
         ]
     });
-    $("#save").click(correctionTool.save);
-})();
+    
+    correctionTool = new correctionToolClass(auth,map);
+    $("#save").click(function(){correctionTool.save(); return false;});
