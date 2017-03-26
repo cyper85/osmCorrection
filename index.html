@@ -58,9 +58,9 @@
         <script src="js/bootstrap.min.js" type="text/javascript"></script>
         <script src="js/libs/1000hz-bootstrap-validator/validator.min.js" type="text/javascript"></script>
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
+        <link rel="stylesheet" href="js/libs/leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
         <script src="js/libs/leaflet-search/src/leaflet-search.js" type="text/javascript"></script>
-        <script src="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+        <script src="js/libs/leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
         <script src="js/libs/require.js/require.min.js" type="text/javascript"></script>
         <script>
             require.config({
@@ -79,7 +79,7 @@
                     }
                 }).addTo(map);
                 var search = new L.Control.Search({
-                    url: 'http://nominatim.openstreetmap.org/search?format=json&q={s}',
+                    url: 'https://nominatim.openstreetmap.org/search?format=json&q={s}',
                     jsonpParam: 'json_callback',
                     propertyName: 'display_name',
                     propertyLoc: ['lat', 'lon'],
