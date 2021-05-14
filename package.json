@@ -9,17 +9,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://andreas:TmtjoWtdi@nagios.stadtplan-ilmenau.de:9999/Map4/osmCorrection.git"
+    "url": "git@github.com:cyper85/osmCorrection.git"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@types/jquery": "^2.0.41",
-    "@types/leaflet": "^1.0.56",
+    "@types/leaflet": "^1.7.0",
     "mocha": "^2",
     "typescript": "^2"
   },
   "dependencies": {
-    "@types/bootstrap-validator": "^0.11.0"
+    "@types/bootstrap-validator": "^0.11.0",
+    "leaflet": "^1.7.1",
+    "leaflet-search": "^2.9.9",
+    "osm-auth": "^1.1.0"
   }
 }

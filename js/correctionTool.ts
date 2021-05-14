@@ -25,6 +25,7 @@
 
 import {correctionObjectClass} from "./correctionObject";
 import {osmObject, overpassObject, syntaxErrorObject} from "./osmObjectInterface";
+import * as L from 'libs/leaflet/leaflet';
 
 export class correctionToolClass {
     /**

@@ -28,6 +28,7 @@
 //import * as o from "./osmauth.js";
 import { correctionToolClass } from "./correctionTool";
 import { correctTelephone } from "./tel";
+import * as L from './libs/leaflet/leaflet';
 
 declare var map: L.Map;
 

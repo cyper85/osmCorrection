@@ -26,6 +26,7 @@ import { correctionToolClass } from "./correctionTool";
 import { osmObject } from "./osmObjectInterface";
 
 //import * as ov from "./libs/osmValidation/osmValidation.js";
+// @ts-ignore
 import ov = require("libs/osmValidation/osmValidation.js");
 
 declare var correctionTool: correctionToolClass;
