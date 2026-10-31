@@ -1,6 +1,7 @@
 import { url as validateUrl } from 'osmvalidation';
 import { CHECKS, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
+import { isRecentlyChecked } from './verification.js';
 
 /*
  * Without a server the browser can only make "no-cors" requests to other
@@ -61,11 +62,16 @@ export function probeUrl(value: string): string | undefined {
   return parsed.href;
 }
 
-export function websitesToProbe(elements: OsmElement[]): string[] {
+/** Website tags to check: not confirmed with a recent check_date. */
+function needsCheck(element: OsmElement, key: string, now: Date): boolean {
+  return WEBSITE_KEY.test(key) && !isRecentlyChecked(element, key, now);
+}
+
+export function websitesToProbe(elements: OsmElement[], now = new Date()): string[] {
   const urls = new Set<string>();
   for (const element of elements) {
     for (const [key, value] of Object.entries(element.tags)) {
-      const target = WEBSITE_KEY.test(key) ? probeUrl(value) : undefined;
+      const target = needsCheck(element, key, now) ? probeUrl(value) : undefined;
       if (target !== undefined) {
         urls.add(target);
       }
@@ -115,12 +121,17 @@ function urlCheck(): Check {
  * Reports websites the browser could not connect to, and http websites that
  * are also available via https. Keys that already have an issue are skipped.
  */
-export function websiteIssues(elements: OsmElement[], results: Map<string, ProbeResult>, existing: Issue[]): Issue[] {
+export function websiteIssues(
+  elements: OsmElement[],
+  results: Map<string, ProbeResult>,
+  existing: Issue[],
+  now = new Date(),
+): Issue[] {
   const taken = new Set(existing.map((issue) => `${elementKey(issue.element)}/${issue.key}`));
   const issues: Issue[] = [];
   for (const element of elements) {
     for (const [key, value] of Object.entries(element.tags)) {
-      if (!WEBSITE_KEY.test(key) || taken.has(`${elementKey(element)}/${key}`)) {
+      if (!needsCheck(element, key, now) || taken.has(`${elementKey(element)}/${key}`)) {
         continue;
       }
       const target = probeUrl(value);

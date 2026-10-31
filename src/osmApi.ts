@@ -54,8 +54,13 @@ export interface Conflict {
 
 /**
  * Applies the changes to the current versions of the elements. A change is
- * only applied if the tag still has the value the user saw; otherwise someone
- * else edited it in the meantime and it becomes a conflict.
+ * only applied if the tag still has the value the user saw (or is still
+ * missing, for a new tag); otherwise someone else edited it in the meantime
+ * and it becomes a conflict.
+ *
+ * A check_date (`verifies`) is applied after the other changes and only if
+ * the verified tag then has the verified value. So it is dropped together
+ * with a conflicting correction of that tag.
  */
 export function applyChanges(
   changes: TagChange[],
@@ -63,7 +68,8 @@ export function applyChanges(
 ): { modified: ApiElement[]; conflicts: Conflict[] } {
   const modified = new Map<string, ApiElement>();
   const conflicts: Conflict[] = [];
-  for (const change of changes) {
+  const ordered = [...changes.filter((c) => c.verifies === undefined), ...changes.filter((c) => c.verifies !== undefined)];
+  for (const change of ordered) {
     const key = elementKey(change);
     const element = modified.get(key) ?? current.get(key);
     if (element === undefined || element.visible === false) {
@@ -74,8 +80,17 @@ export function applyChanges(
     if (value !== change.oldValue) {
       conflicts.push({
         change,
-        reason: value === undefined ? 'Tag wurde inzwischen entfernt' : `Tag wurde inzwischen geändert auf „${value}“`,
+        reason:
+          value === undefined
+            ? 'Tag wurde inzwischen entfernt'
+            : change.oldValue === undefined
+              ? `Tag wurde inzwischen gesetzt auf „${value}“`
+              : `Tag wurde inzwischen geändert auf „${value}“`,
       });
+      continue;
+    }
+    if (change.verifies !== undefined && element.tags?.[change.verifies.key] !== change.verifies.value) {
+      conflicts.push({ change, reason: `Der geprüfte Wert von ${change.verifies.key} wird nicht hochgeladen` });
       continue;
     }
     modified.set(key, { ...element, tags: { ...element.tags, [change.key]: change.newValue } });

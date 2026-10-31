@@ -14,6 +14,10 @@ geändert, wird diese Änderung als Konflikt übersprungen.
 Zusätzlich gibt es Online-Prüfungen: Gibt es das Wikidata-Objekt noch, ist
 es eine Weiterleitung, und passt der `wikipedia`-Tag zum verknüpften Artikel?
 Antwortet der Server einer Website, und gibt es http-Websites auch per https?
+Websites, Facebook- und X-Profile kann man im neuen Tab öffnen und mit
+„Geöffnet und geprüft“ bestätigen; dann wird `check_date:<Tag>` gesetzt, und
+der Wert wird für 24 Monate (`VITE_CHECK_INTERVAL_MONTHS` in `.env`) nicht
+erneut vorgelegt.
 
 Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>

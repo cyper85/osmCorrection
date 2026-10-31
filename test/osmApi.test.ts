@@ -30,6 +30,43 @@ describe('applyChanges', () => {
     expect(conflicts[0]?.reason).toMatch(/geändert/);
   });
 
+  describe('new tags and check_date', () => {
+    const website: TagChange = { type: 'node', id: 1, key: 'website', oldValue: 'http://a.de/', newValue: 'https://a.de/' };
+    const checkDate: TagChange = {
+      type: 'node',
+      id: 1,
+      key: 'check_date:website',
+      newValue: '2026-10-31',
+      verifies: { key: 'website', value: 'https://a.de/' },
+    };
+
+    it('adds a tag that is still missing', () => {
+      const latest = current({ type: 'node', id: 1, version: 2, tags: { website: 'http://a.de/' } });
+      const { modified, conflicts } = applyChanges([checkDate, website], latest);
+      expect(conflicts).toEqual([]);
+      expect(modified[0]?.tags).toEqual({ website: 'https://a.de/', 'check_date:website': '2026-10-31' });
+    });
+
+    it('reports a conflict if the new tag was set in the meantime', () => {
+      const latest = current({ type: 'node', id: 1, version: 3, tags: { website: 'https://a.de/', 'check_date:website': '2026-10-01' } });
+      const { conflicts } = applyChanges([{ ...checkDate }], latest);
+      expect(conflicts[0]?.reason).toMatch(/inzwischen gesetzt/);
+    });
+
+    it('drops the check_date together with a conflicting correction', () => {
+      const latest = current({ type: 'node', id: 1, version: 3, tags: { website: 'https://b.de/' } });
+      const { modified, conflicts } = applyChanges([checkDate, website], latest);
+      expect(modified).toEqual([]);
+      expect(conflicts.map((c) => c.change.key)).toEqual(['website', 'check_date:website']);
+    });
+
+    it('drops a confirmation if the confirmed value was changed in the meantime', () => {
+      const confirm: TagChange = { ...checkDate, verifies: { key: 'website', value: 'http://a.de/' } };
+      const latest = current({ type: 'node', id: 1, version: 3, tags: { website: 'https://other.de/' } });
+      expect(applyChanges([confirm], latest).conflicts[0]?.reason).toMatch(/geprüfte Wert/);
+    });
+  });
+
   it('reports a conflict for deleted elements', () => {
     expect(applyChanges([change], current()).conflicts).toHaveLength(1);
     expect(applyChanges([change], current({ type: 'node', id: 1, version: 7, visible: false })).conflicts).toHaveLength(1);

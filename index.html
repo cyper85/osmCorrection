@@ -71,10 +71,7 @@
             <dt>Tag</dt>
             <dd><code id="issue-key"></code></dd>
             <dt>Aktueller Wert</dt>
-            <dd>
-              <code id="issue-value"></code>
-              <a id="issue-open" target="_blank" rel="noopener noreferrer" hidden>öffnen</a>
-            </dd>
+            <dd><code id="issue-value"></code></dd>
             <dt>Befund</dt>
             <dd id="issue-message" class="message"></dd>
           </dl>
@@ -82,15 +79,21 @@
             <label for="issue-input">Neuer Wert</label>
             <input id="issue-input" autocomplete="off" spellcheck="false" />
             <p id="issue-check" class="hint"></p>
+            <p id="issue-open-row" hidden>
+              <a id="issue-open" target="_blank" rel="noopener noreferrer">Im neuen Tab öffnen</a>
+            </p>
             <div class="row">
-              <button type="submit" class="primary">Übernehmen</button>
+              <button type="submit" id="accept" class="primary">Übernehmen</button>
+              <button type="button" id="verify">Geöffnet und geprüft</button>
               <button type="button" id="skip">Überspringen</button>
               <button type="button" id="back">Zurück</button>
             </div>
+            <p id="verify-hint" class="hint" hidden></p>
           </form>
           <p class="hint keys">
-            <kbd>Enter</kbd> übernehmen · <kbd>Bild ↓</kbd> überspringen · <kbd>Bild ↑</kbd> zurück ·
-            <kbd>Esc</kbd> alten Wert wiederherstellen. Marker auf der Karte anklicken, um direkt zu einem Fund zu springen.
+            <kbd>Enter</kbd> übernehmen · <kbd>Strg</kbd>+<kbd>Enter</kbd> geprüft (nach dem Öffnen) ·
+            <kbd>Bild ↓</kbd> überspringen · <kbd>Bild ↑</kbd> zurück · <kbd>Esc</kbd> alten Wert wiederherstellen.
+            Marker auf der Karte anklicken, um direkt zu einem Fund zu springen.
           </p>
         </div>
         <p id="review-done" hidden>Alle Funde sind durchgesehen.</p>

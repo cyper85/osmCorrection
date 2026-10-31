@@ -32,8 +32,21 @@ describe('ChangeStore', () => {
   it('removes a change when the old value is set again', () => {
     const store = new ChangeStore();
     store.set(change);
-    store.set({ ...change, newValue: change.oldValue });
+    store.set({ ...change, newValue: '030 1' });
     expect(store.size).toBe(0);
+  });
+
+  it('stores new tags and check_dates with the verified value', () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    const checkDate: TagChange = {
+      type: 'node',
+      id: 1,
+      key: 'check_date:website',
+      newValue: '2026-10-31',
+      verifies: { key: 'website', value: 'https://a.de/' },
+    };
+    new ChangeStore('test').set(checkDate);
+    expect(new ChangeStore('test').list()).toEqual([checkDate]);
   });
 
   it('survives a reload with a storage key', () => {

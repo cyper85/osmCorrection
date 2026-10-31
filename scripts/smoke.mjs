@@ -73,6 +73,33 @@ if (await page.locator('#issue').isVisible()) {
   check('discard removes the change', !(await page.locator('#pending').isVisible()));
 }
 
+// confirm mode: open the website, then confirm it → check_date
+await page.evaluate(() => {
+  localStorage.setItem('osmCorrection.checks', JSON.stringify(['confirm-online']));
+  localStorage.removeItem('osmCorrection.changes');
+});
+await page.reload();
+await page.click('#guest');
+await page.click('#download');
+await page.waitForSelector('#step-review:not([hidden]), #error:not([hidden])', { timeout: 300_000 });
+if (await page.locator('#error').isVisible()) {
+  check('confirm mode download', false, await text('error'));
+} else if (await page.locator('#issue').isVisible()) {
+  check('confirm mode lists values to confirm', true, `${await text('progress')}, ${await text('issue-key')} = ${await text('issue-value')}`);
+  check('confirm button disabled before opening', await page.locator('#verify').isDisabled(), await text('verify-hint'));
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.click('#issue-open')]);
+  await popup.close();
+  check('confirm button enabled after opening', !(await page.locator('#verify').isDisabled()), await text('verify-hint'));
+  await page.click('#verify');
+  await page.click('#to-upload');
+  const diff = await text('diff');
+  check('check_date added as new tag', /check_date:.*neu \d{4}-\d{2}-\d{2}/s.test(diff), diff.replace(/\n/g, ' '));
+  check('comment mentions the check', /online geprüft \(check_date\)/.test(await page.inputValue('#comment')), await page.inputValue('#comment'));
+  await page.evaluate(() => localStorage.removeItem('osmCorrection.changes'));
+} else {
+  check('confirm mode lists values to confirm', false, 'no values to confirm in the area');
+}
+
 check('no page errors', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();
 process.exit(failed ? 1 : 0);

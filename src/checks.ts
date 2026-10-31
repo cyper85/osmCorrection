@@ -94,6 +94,8 @@ export interface Issue extends Evaluation {
   key: string;
   value: string;
   check: Check;
+  /** 'confirm': the value is fine, the user is only asked to verify it online */
+  kind?: 'confirm';
 }
 
 export function evaluate(check: Check, value: string, context: CheckContext): Evaluation {
