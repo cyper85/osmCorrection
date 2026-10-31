@@ -35,6 +35,8 @@ await page.reload();
 
 check('login step shown', await page.locator('#step-login').isVisible());
 await page.click('#guest');
+const sidebarWidth = () => page.locator('#sidebar').evaluate((el) => Math.round(el.getBoundingClientRect().width));
+const selectWidth = await sidebarWidth();
 await page.click('#download');
 await page.waitForSelector('#step-review:not([hidden]), #error:not([hidden])', { timeout: 300_000 });
 if (await page.locator('#error').isVisible()) {
@@ -43,8 +45,22 @@ if (await page.locator('#error').isVisible()) {
   process.exit(1);
 }
 check('review step shown', true, await text('progress'));
+const reviewWidth = await sidebarWidth();
+check('sidebar wider while editing', reviewWidth > selectWidth, `${selectWidth} → ${reviewWidth} px`);
+if (process.env.SCREENSHOT) {
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: process.env.SCREENSHOT });
+}
 
 if (await page.locator('#issue').isVisible()) {
+  await page.click('#note-open');
+  check('note form with text', /vor Ort prüfen/.test(await page.inputValue('#note-text')), (await page.inputValue('#note-text')).split('\n')[0]);
+  check('note needs a login', await page.locator('#note-create').isDisabled(), await text('note-status'));
+  await page.keyboard.press('PageDown');
+  check('Bild ↓ stays in the note text', (await text('progress')).startsWith('Fund 1'));
+  await page.keyboard.press('Escape');
+  check('Esc closes the note form', !(await page.locator('#note').isVisible()) && (await page.locator('#issue-form').isVisible()));
+
   console.log(`  ${await text('issue-key')} = ${await text('issue-value')} → ${await page.inputValue('#issue-input')}`);
   console.log(`  ${(await text('issue-message')).replace(/\n/g, ' / ')}`);
 

@@ -17,6 +17,7 @@ import { MapView, MIN_DOWNLOAD_ZOOM, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
 import { applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
+import { createNote, noteFor, noteText, noteUrl, rememberNote } from './notes.js';
 import { buildQuery, download } from './overpass.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
 import {
@@ -67,6 +68,12 @@ function showStep(next: Step): void {
   step = next;
   for (const name of ['login', 'select', 'review', 'upload'] as const) {
     $(`step-${name}`).hidden = name !== next;
+  }
+  // a large map to select the area, more room for the sidebar while editing
+  const editing = next === 'review' || next === 'upload';
+  if (document.body.classList.contains('editing') !== editing) {
+    document.body.classList.toggle('editing', editing);
+    mapView.map.invalidateSize();
   }
   if (next !== 'review') {
     mapView.clearHighlight();
@@ -328,7 +335,8 @@ function showIssue(): void {
   $('issue-key').textContent = issue.key;
   $('issue-value').textContent = issue.value;
   $('issue-message').textContent = issue.message;
-  hideClosure();
+  hidePanels();
+  showNoteLink(issue.element);
 
   const input = $<HTMLInputElement>('issue-input');
   const pending = changes.get(issue.element, issue.key);
@@ -433,9 +441,15 @@ function accept(verified: boolean): void {
 
 let closureActions: Record<string, TagAction> = {};
 
-function hideClosure(): void {
+/** Closes the closure and note forms and shows the issue form again. */
+function hidePanels(): void {
   $('closure').hidden = true;
+  $('note').hidden = true;
   $('issue-form').hidden = false;
+}
+
+function panelOpen(): boolean {
+  return !$('closure').hidden || !$('note').hidden;
 }
 
 function openClosure(): void {
@@ -521,6 +535,62 @@ function confirmClosure(): void {
   goTo(nextElement());
 }
 
+// ---------------------------------------------------------------- check on site
+
+function showNoteLink(element: OsmElement): void {
+  const id = noteFor(element);
+  const line = $('issue-note');
+  line.hidden = id === undefined;
+  if (id !== undefined) {
+    line.replaceChildren(
+      'Hinweis zum Prüfen vor Ort erstellt: ',
+      Object.assign(document.createElement('a'), { href: noteUrl(id), target: '_blank', rel: 'noopener', textContent: `Hinweis ${id}` }),
+    );
+  }
+}
+
+function openNote(): void {
+  const issue = issues[current];
+  if (issue === undefined) {
+    return;
+  }
+  const loggedIn = auth.authenticated();
+  $<HTMLTextAreaElement>('note-text').value = noteText(issue.element);
+  $<HTMLButtonElement>('note-create').disabled = !loggedIn;
+  $('note-status').textContent = loggedIn ? '' : 'Zum Erstellen eines Hinweises musst du angemeldet sein.';
+  $('issue-form').hidden = true;
+  $('note').hidden = false;
+  $('note-text').focus();
+}
+
+async function submitNote(): Promise<void> {
+  const issue = issues[current];
+  const text = $<HTMLTextAreaElement>('note-text').value.trim();
+  const button = $<HTMLButtonElement>('note-create');
+  const status = $('note-status');
+  if (issue === undefined || button.disabled) {
+    return;
+  }
+  if (text === '') {
+    status.textContent = 'Bitte einen Text eingeben.';
+    return;
+  }
+  button.disabled = true;
+  status.textContent = 'Erstelle Hinweis …';
+  try {
+    const id = await createNote(auth, issue.element, text);
+    rememberNote(issue.element, id);
+    if (issues[current] === issue) {
+      hidePanels();
+      showNoteLink(issue.element);
+      $('issue-input').focus();
+    }
+  } catch (error) {
+    status.textContent = error instanceof Error ? error.message : String(error);
+    button.disabled = false;
+  }
+}
+
 function updateChangeCount(): void {
   const button = $<HTMLButtonElement>('to-upload');
   button.disabled = changes.size === 0;
@@ -529,6 +599,10 @@ function updateChangeCount(): void {
 
 function onReviewKey(event: KeyboardEvent): void {
   if (step !== 'review' || issues[current] === undefined || event.altKey || event.metaKey) {
+    return;
+  }
+  // in the note text, Bild ↑/↓ and Strg+Enter belong to the text field
+  if (event.target instanceof HTMLTextAreaElement && event.key !== 'Escape') {
     return;
   }
   if (event.ctrlKey) {
@@ -544,9 +618,9 @@ function onReviewKey(event: KeyboardEvent): void {
   } else if (event.key === 'PageUp') {
     event.preventDefault();
     goTo(current - 1);
-  } else if (event.key === 'Escape' && !$('closure').hidden) {
+  } else if (event.key === 'Escape' && panelOpen()) {
     event.preventDefault();
-    hideClosure();
+    hidePanels();
     $('issue-input').focus();
   } else if (event.key === 'Escape') {
     event.preventDefault();
@@ -782,10 +856,17 @@ $('closure').addEventListener('submit', (event) => {
   event.preventDefault();
   confirmClosure();
 });
-$('closure-cancel').addEventListener('click', () => {
-  hideClosure();
-  $('issue-input').focus();
+$('note-open').addEventListener('click', openNote);
+$('note').addEventListener('submit', (event) => {
+  event.preventDefault();
+  void submitNote();
 });
+for (const id of ['closure-cancel', 'note-cancel']) {
+  $(id).addEventListener('click', () => {
+    hidePanels();
+    $('issue-input').focus();
+  });
+}
 $('skip').addEventListener('click', () => goTo(current + 1));
 $('back').addEventListener('click', () => goTo(current - 1));
 document.addEventListener('keydown', onReviewKey);

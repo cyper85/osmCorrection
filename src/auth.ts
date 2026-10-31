@@ -11,7 +11,7 @@ export const CLIENT_ID: string = import.meta.env.VITE_OSM_CLIENT_ID ?? '';
 export const auth = new osmAuth({
   client_id: CLIENT_ID,
   redirect_uri: window.location.origin + window.location.pathname,
-  scope: 'read_prefs write_api',
+  scope: 'read_prefs write_api write_notes',
   singlepage: true,
 });
 
