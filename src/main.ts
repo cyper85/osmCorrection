@@ -724,6 +724,12 @@ function renderDiff(): void {
       return changeItem(change, ...extra);
     }),
   );
+  // nothing (left) to upload, e.g. after the upload: only the result and the way on
+  $('upload-form').hidden = list.length === 0;
+  $('upload-done').hidden = list.length > 0;
+  const reviewLeft = issues.length > 0 && current < issues.length;
+  $('upload-continue').hidden = !reviewLeft;
+  $('upload-restart').classList.toggle('primary', !reviewLeft);
   $<HTMLButtonElement>('upload').disabled = list.length === 0 || !auth.authenticated();
   $('upload-login-box').hidden = auth.authenticated() || list.length === 0;
   $<HTMLButtonElement>('upload-login').disabled = CLIENT_ID === '';
@@ -871,21 +877,26 @@ $('skip').addEventListener('click', () => goTo(current + 1));
 $('back').addEventListener('click', () => goTo(current - 1));
 document.addEventListener('keydown', onReviewKey);
 $('to-upload').addEventListener('click', toUpload);
-$('restart').addEventListener('click', () => {
+function restart(): void {
   issues = [];
   mapView.clearIssues();
   showStep('select');
-});
+}
 
-$('upload').addEventListener('click', () => void startUpload());
-$('upload-back').addEventListener('click', () => {
+function backToReview(): void {
   if (issues.length === 0) {
     showStep('select');
     return;
   }
   showStep('review');
   showIssue();
-});
+}
+
+$('restart').addEventListener('click', restart);
+$('upload').addEventListener('click', () => void startUpload());
+$('upload-back').addEventListener('click', backToReview);
+$('upload-continue').addEventListener('click', backToReview);
+$('upload-restart').addEventListener('click', restart);
 
 async function init(): Promise<void> {
   renderChecks();

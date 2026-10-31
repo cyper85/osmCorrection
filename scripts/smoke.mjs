@@ -129,6 +129,17 @@ if (await page.locator('#error').isVisible()) {
   await page.locator('#diff button', { hasText: 'existiert nicht mehr' }).first().click();
   const closedLeft = await page.locator('#diff button', { hasText: 'existiert nicht mehr' }).count();
   check('closure is discarded as a whole', closedLeft === 0, `${before} → ${await page.locator('#diff li').count()} Änderungen`);
+
+  // nothing left to upload (as after an upload): no list, no comment, only the way on
+  while ((await page.locator('#diff button').count()) > 0) {
+    await page.locator('#diff button').first().click();
+  }
+  check(
+    'empty upload step shows only the way on',
+    !(await page.locator('#upload-form').isVisible()) && (await page.locator('#upload-done').isVisible()),
+  );
+  await page.click('#upload-continue');
+  check('continue goes back to the review', await page.locator('#step-review').isVisible());
   await page.evaluate(() => localStorage.removeItem('osmCorrection.changes'));
 } else {
   check('confirm mode lists values to confirm', false, 'no values to confirm in the area');
