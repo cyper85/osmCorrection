@@ -8,6 +8,7 @@ import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
 import { applyChanges, fetchCurrent, upload } from './osmApi.js';
 import { buildQuery, download } from './overpass.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
+import { browserProbe, probeAll, WEBSITE_ONLINE, websiteIssues, websitesToProbe } from './websites.js';
 import './style.css';
 
 const GENERATOR = `osmCorrection ${__APP_VERSION__}`;
@@ -95,12 +96,15 @@ function checkbox(id: string, label: string, checked: boolean): HTMLLabelElement
 function renderChecks(): void {
   const selected = new Set(savedCheckIds());
   $('checks').replaceChildren(...CHECKS.map((check) => checkbox(check.id, check.label, selected.has(check.id))));
+  const hint = (text: string) => Object.assign(document.createElement('p'), { className: 'hint', textContent: text });
   $('online-checks').append(
     checkbox(WIKIDATA_ONLINE.id, WIKIDATA_ONLINE.label, selected.has(WIKIDATA_ONLINE.id)),
-    Object.assign(document.createElement('p'), {
-      className: 'hint',
-      textContent: 'Gibt es das Wikidata-Objekt noch, ist es eine Weiterleitung, und passt der wikipedia-Tag dazu?',
-    }),
+    hint('Gibt es das Wikidata-Objekt noch, ist es eine Weiterleitung, und passt der wikipedia-Tag dazu?'),
+    checkbox(WEBSITE_ONLINE.id, WEBSITE_ONLINE.label, selected.has(WEBSITE_ONLINE.id)),
+    hint(
+      'Antwortet der Server überhaupt, und gibt es http-Seiten auch per https? Fehlende Seiten (404) und ' +
+        'Weiterleitungen erkennt der Browser nicht. Jede Website im Ausschnitt wird dafür von deinem Browser aufgerufen.',
+    ),
   );
   for (const id of ['checks', 'online-checks']) {
     $(id).addEventListener('change', () => {
@@ -125,8 +129,8 @@ function selectedChecks(): Check[] {
   return CHECKS.filter((check) => ids.has(check.id));
 }
 
-function onlineSelected(): boolean {
-  return selectedIds().includes(WIKIDATA_ONLINE.id);
+function onlineSelected(id: string): boolean {
+  return selectedIds().includes(id);
 }
 
 function updateDownloadButton(): void {
@@ -151,7 +155,8 @@ function updatePending(): void {
 
 async function startDownload(): Promise<void> {
   const checks = selectedChecks();
-  const online = onlineSelected();
+  const wikidataOnline = onlineSelected(WIKIDATA_ONLINE.id);
+  const websiteOnline = onlineSelected(WEBSITE_ONLINE.id);
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
   showError(undefined);
@@ -159,8 +164,11 @@ async function startDownload(): Promise<void> {
   hint.textContent = 'Lade Daten von Overpass …';
   try {
     const keyPatterns = checks.map((c) => c.keyPattern);
-    if (online) {
+    if (wikidataOnline) {
       keyPatterns.push(WIKIDATA_ONLINE.keyPattern);
+    }
+    if (websiteOnline) {
+      keyPatterns.push(WEBSITE_ONLINE.keyPattern);
     }
     const center = mapView.center();
     const [downloaded, country] = await Promise.all([
@@ -170,11 +178,19 @@ async function startDownload(): Promise<void> {
     fallbackCountry = country;
     let found = findIssues(downloaded, checks, fallbackCountry);
 
-    if (online) {
+    if (wikidataOnline) {
       hint.textContent = 'Prüfe Wikidata …';
       const { ids, languages } = referencesToFetch(downloaded);
       const items = await fetchItems(ids, languages);
       found = found.concat(referenceIssues(downloaded, items, found));
+    }
+    if (websiteOnline) {
+      const urls = websitesToProbe(downloaded);
+      hint.textContent = `Prüfe ${urls.length} Websites …`;
+      const results = await probeAll(urls, browserProbe, (done, total) => {
+        hint.textContent = `Prüfe Websites … ${done} von ${total}`;
+      });
+      found = found.concat(websiteIssues(downloaded, results, found));
     }
 
     // issues of one element one after the other, in download order
@@ -266,6 +282,11 @@ function showIssue(): void {
   $('issue-key').textContent = issue.key;
   $('issue-value').textContent = issue.value;
   $('issue-message').textContent = issue.message;
+  const open = $<HTMLAnchorElement>('issue-open');
+  open.hidden = !/^https?:\/\//i.test(issue.value);
+  if (!open.hidden) {
+    open.href = issue.value;
+  }
 
   const input = $<HTMLInputElement>('issue-input');
   input.value = changes.get(issue.element, issue.key)?.newValue ?? issue.suggestion ?? issue.value;
