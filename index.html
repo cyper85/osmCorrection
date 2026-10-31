@@ -139,15 +139,21 @@
 
       <section id="step-upload" hidden>
         <h2>3. Hochladen</h2>
-        <p>Diese Änderungen werden in einem Changeset hochgeladen:</p>
-        <ul id="diff" class="diff"></ul>
-        <label for="comment">Changeset-Kommentar</label>
-        <textarea id="comment" rows="3" required></textarea>
-        <div class="row">
-          <button type="button" id="upload" class="primary">Hochladen</button>
-          <button type="button" id="upload-back">Zurück</button>
+        <div id="upload-form">
+          <p>Diese Änderungen werden in einem Changeset hochgeladen:</p>
+          <ul id="diff" class="diff"></ul>
+          <label for="comment">Changeset-Kommentar</label>
+          <textarea id="comment" rows="3" required></textarea>
+          <div class="row">
+            <button type="button" id="upload" class="primary">Hochladen</button>
+            <button type="button" id="upload-back">Zurück</button>
+          </div>
         </div>
         <p id="upload-status" class="hint"></p>
+        <div id="upload-done" class="row" hidden>
+          <button type="button" id="upload-continue" class="primary">Weiter prüfen</button>
+          <button type="button" id="upload-restart">Neuer Ausschnitt</button>
+        </div>
         <p id="upload-login-box" hidden>
           Zum Hochladen musst du angemeldet sein. Deine Änderungen bleiben dabei erhalten.
           <button type="button" id="upload-login" class="primary">Mit OpenStreetMap anmelden</button>
