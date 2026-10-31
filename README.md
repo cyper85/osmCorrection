@@ -11,9 +11,9 @@ als ein Changeset hochladen. Vor dem Hochladen wird die aktuelle Version jedes
 Elements von der OSM-API geholt. Wurde ein Tag inzwischen von jemand anderem
 geändert, wird diese Änderung als Konflikt übersprungen.
 
-Zusätzlich gibt es eine Online-Prüfung der Wikidata-Verweise: Gibt es das
-Objekt noch, ist es eine Weiterleitung, und passt der `wikipedia`-Tag zu dem
-Artikel, der im Wikidata-Objekt verknüpft ist?
+Zusätzlich gibt es Online-Prüfungen: Gibt es das Wikidata-Objekt noch, ist
+es eine Weiterleitung, und passt der `wikipedia`-Tag zum verknüpften Artikel?
+Antwortet der Server einer Website, und gibt es http-Websites auch per https?
 
 Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>
@@ -33,7 +33,11 @@ npm install
 npm run dev        # http://127.0.0.1:5173/
 npm test           # vitest
 npm run build      # Typprüfung + Build nach dist/
+npm run smoke      # Browser-Test mit Edge gegen `npx vite preview --port 4173`
 ```
+
+Aktueller Stand, Entscheidungen und offene Punkte stehen in
+[STAND.md](STAND.md).
 
 osmValidation wird direkt aus den TypeScript-Quellen in `libs/osmValidation`
 eingebunden (Vite-Alias und `paths` in `tsconfig.json`), Änderungen dort sind
