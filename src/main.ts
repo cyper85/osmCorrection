@@ -25,6 +25,13 @@ function $<T extends HTMLElement = HTMLElement>(id: string): T {
   return element as T;
 }
 
+// OSM accepts http redirect URIs only for 127.0.0.1, not for localhost
+if (window.location.hostname === 'localhost') {
+  const target = new URL(window.location.href);
+  target.hostname = '127.0.0.1';
+  window.location.replace(target);
+}
+
 const mapView = new MapView($('map'));
 const changes = new ChangeStore(CHANGE_STORAGE_KEY);
 let step: Step = 'login';
@@ -172,7 +179,11 @@ async function startDownload(): Promise<void> {
     }
     const center = mapView.center();
     const [downloaded, country] = await Promise.all([
-      download(buildQuery(keyPatterns, mapView.bbox())),
+      download(buildQuery(keyPatterns, mapView.bbox()), {
+        onAttempt: (url, round) => {
+          hint.textContent = `Lade Daten von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+        },
+      }),
       countryAt(center.lat, center.lon).catch(() => undefined),
     ]);
     fallbackCountry = country;

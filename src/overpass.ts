@@ -1,13 +1,26 @@
 import type { Bounds, ElementType, LatLon, OsmElement } from './osm.js';
 
-/** Tried in order; the next one is used if a server is busy. */
+/**
+ * Public Overpass instances that allow requests from other sites (CORS),
+ * tried in order; the next one is used if a server is busy or does not answer.
+ */
 export const OVERPASS_URLS = [
   'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
 
 /** Status codes Overpass uses for "too many requests" and "at capacity". */
 const BUSY_STATUS = new Set([429, 502, 503, 504]);
+
+/** A bit more than the query timeout, so a server that hangs does not block the others. */
+const REQUEST_TIMEOUT_MS = 100_000;
+
+/**
+ * Pause before each round over all servers. "At capacity" usually passes
+ * within seconds, so a second round often succeeds.
+ */
+const ROUND_DELAYS_MS = [0, 5_000];
 
 export interface BBox {
   south: number;
@@ -79,26 +92,66 @@ export function parseResponse(response: OverpassResponse): OsmElement[] {
   return elements;
 }
 
-export async function download(query: string, signal?: AbortSignal): Promise<OsmElement[]> {
-  let lastError: Error | undefined;
-  for (const url of OVERPASS_URLS) {
-    let response: Response;
-    try {
-      response = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: query }), signal: signal ?? null });
-    } catch (error) {
-      if (signal?.aborted) {
-        throw error;
+export interface DownloadOptions {
+  signal?: AbortSignal;
+  /** Called before each request, e.g. to show which server is asked. */
+  onAttempt?: (url: string, round: number) => void;
+  /** for tests */
+  roundDelaysMs?: number[];
+  timeoutMs?: number;
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (ms <= 0) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    }, { once: true });
+  });
+}
+
+/**
+ * Downloads from the first Overpass server that answers. Busy servers,
+ * network errors and timeouts lead to the next server; a broken query (e.g.
+ * HTTP 400) is reported at once.
+ */
+export async function download(query: string, options: DownloadOptions = {}): Promise<OsmElement[]> {
+  const { signal, onAttempt, roundDelaysMs = ROUND_DELAYS_MS, timeoutMs = REQUEST_TIMEOUT_MS } = options;
+  const errors: string[] = [];
+  for (const [round, delay] of roundDelaysMs.entries()) {
+    await sleep(delay, signal);
+    for (const url of OVERPASS_URLS) {
+      const host = new URL(url).host;
+      onAttempt?.(url, round + 1);
+      const timeout = AbortSignal.timeout(timeoutMs);
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          body: new URLSearchParams({ data: query }),
+          signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
+        });
+      } catch (error) {
+        if (signal?.aborted) {
+          throw error;
+        }
+        errors.push(`${host}: ${timeout.aborted ? 'keine Antwort' : 'nicht erreichbar'}`);
+        continue;
       }
-      lastError = error instanceof Error ? error : new Error(String(error));
-      continue;
-    }
-    if (response.ok) {
-      return parseResponse((await response.json()) as OverpassResponse);
-    }
-    lastError = new Error(`Overpass: HTTP ${response.status} ${(await response.text()).slice(0, 200)}`);
-    if (!BUSY_STATUS.has(response.status)) {
-      break;
+      if (response.ok) {
+        return parseResponse((await response.json()) as OverpassResponse);
+      }
+      const detail = `HTTP ${response.status} ${(await response.text()).slice(0, 200)}`.trim();
+      if (!BUSY_STATUS.has(response.status)) {
+        throw new Error(`Overpass (${host}): ${detail}`);
+      }
+      errors.push(`${host}: ausgelastet (HTTP ${response.status})`);
     }
   }
-  throw lastError ?? new Error('Overpass: no server');
+  throw new Error(`Kein Overpass-Server hat geantwortet, bitte später noch einmal versuchen. ${errors.join('; ')}`);
 }

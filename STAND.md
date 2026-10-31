@@ -33,7 +33,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 |---|---|
 | `main.ts` | Oberfläche: Schritte login/select/review/upload, Verdrahtung aller Module |
 | `auth.ts` | `osm-auth` 3, OAuth 2 + PKCE im Single-Page-Modus (Redirect auf dieselbe Seite), Scopes `read_prefs write_api` |
-| `overpass.ts` | Abfrage für alle Key-Muster: `nw…; out meta geom; rel…; out meta bb;`, Ausweich-Server bei 429/502/503/504 |
+| `overpass.ts` | Abfrage für alle Key-Muster: `nw…; out meta geom; rel…; out meta bb;`, mehrere Server mit Zeitlimit und zweiter Runde (siehe unten) |
 | `checks.ts` | Formatprüfungen (`Check` mit `keyPattern` als POSIX-ERE, gilt in JS und Overpass), `findIssues`, Mehrfachwerte über `validateEach` |
 | `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, ersatzweise nach Code) |
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
@@ -62,6 +62,28 @@ npm-Workspace. Prüfregeln gehören nach osmValidation, nicht hierher.
 - **Wikipedia-Abgleich:** Ob `wikipedia` oder `wikidata` falsch ist, lässt
   sich nicht automatisch entscheiden. Der Vorschlag ändert immer `wikipedia`,
   der Text weist darauf hin.
+
+## Overpass-Server
+
+Die öffentlichen Overpass-Server sind oft ausgelastet. overpass-api.de
+antwortet dann sofort mit 502 („at capacity“), meist geht es Sekunden später
+wieder. Getestet am 2026-10-31 aus Edge:
+
+| Server | Ergebnis |
+|---|---|
+| overpass-api.de | zeitweise 502, sonst OK |
+| maps.mail.ru (VK) | OK, zeitweise 504 |
+| overpass.private.coffee | hing ohne Antwort |
+| overpass.kumi.systems | hing ohne Antwort, nicht eingebaut |
+| overpass.osm.jp | kein CORS, nicht nutzbar |
+
+`download()` fragt die Server der Reihe nach (overpass-api.de, mail.ru,
+private.coffee), jeweils mit 100 s Zeitlimit, und macht nach 5 s eine zweite
+Runde. Erst dann kommt eine Fehlermeldung, die für jeden Server den Grund
+nennt. Eine fehlerhafte Abfrage (z. B. 400) wird sofort gemeldet.
+
+Lokal muss die Seite unter `127.0.0.1` laufen, nicht `localhost`: OSM erlaubt
+http-Redirect-URIs nur für 127.0.0.1. `main.ts` leitet `localhost` deshalb um.
 
 ## Grenzen der Online-Prüfung im Browser (getestet mit Edge)
 

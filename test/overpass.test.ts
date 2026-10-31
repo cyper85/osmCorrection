@@ -51,30 +51,64 @@ describe('download', () => {
     vi.unstubAllGlobals();
   });
 
-  function stubFetch(...responses: Response[]): string[] {
+  type Answer = Response | 'network-error' | 'hang';
+
+  /** Answers the requests in order; 'hang' waits until the request is aborted. */
+  function stubFetch(...answers: Answer[]): string[] {
     const urls: string[] = [];
-    vi.stubGlobal('fetch', async (url: string) => {
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
       urls.push(url);
-      const response = responses.shift();
-      if (response === undefined) {
+      const answer = answers.shift();
+      if (answer === undefined) {
         throw new Error('unexpected request');
       }
-      return response;
+      if (answer === 'network-error') {
+        throw new TypeError('Failed to fetch');
+      }
+      if (answer === 'hang') {
+        return new Promise<Response>((_, reject) => {
+          init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        });
+      }
+      return answer;
     });
     return urls;
   }
 
   const ok = () => new Response(JSON.stringify({ elements: [{ type: 'node', id: 1, version: 1, tags: { a: 'b' } }] }));
+  const busy = () => new Response('at capacity', { status: 502 });
+  const fast = { roundDelaysMs: [0, 0], timeoutMs: 50 };
 
   it('falls back to the next server if one is busy', async () => {
-    const urls = stubFetch(new Response('at capacity', { status: 504 }), ok());
-    await expect(download('q')).resolves.toHaveLength(1);
+    const urls = stubFetch(busy(), ok());
+    await expect(download('q', fast)).resolves.toHaveLength(1);
+    expect(urls).toEqual(OVERPASS_URLS.slice(0, 2));
+  });
+
+  it('skips servers that do not answer or cannot be reached', async () => {
+    const urls = stubFetch('hang', 'network-error', ok());
+    await expect(download('q', fast)).resolves.toHaveLength(1);
     expect(urls).toEqual(OVERPASS_URLS);
+  });
+
+  it('tries all servers again in a second round', async () => {
+    const attempts: number[] = [];
+    const urls = stubFetch(busy(), busy(), 'hang', ok());
+    await expect(download('q', { ...fast, onAttempt: (_, round) => attempts.push(round) })).resolves.toHaveLength(1);
+    expect(urls).toEqual([...OVERPASS_URLS, OVERPASS_URLS[0]]);
+    expect(attempts).toEqual([1, 1, 1, 2]);
+  });
+
+  it('reports every server if none answers', async () => {
+    stubFetch(busy(), 'network-error', 'hang', busy(), busy(), busy());
+    await expect(download('q', fast)).rejects.toThrow(
+      /Kein Overpass-Server.*overpass-api\.de: ausgelastet \(HTTP 502\).*maps\.mail\.ru: nicht erreichbar.*private\.coffee: keine Antwort/,
+    );
   });
 
   it('does not retry a broken query', async () => {
     const urls = stubFetch(new Response('parse error', { status: 400 }));
-    await expect(download('q')).rejects.toThrow(/400 parse error/);
+    await expect(download('q', fast)).rejects.toThrow(/400 parse error/);
     expect(urls).toHaveLength(1);
   });
 });
