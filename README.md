@@ -23,7 +23,8 @@ Einzelne Tags lassen sich löschen. Gibt es ein Geschäft nicht mehr, wählt man
 unter „Gibt es nicht mehr …“ für jeden Tag: behalten, löschen, `disused:` oder
 `was:` (vorbelegt: Gebäude bleibt, `shop=*` wird `disused:shop=*`, Name,
 Öffnungszeiten usw. werden gelöscht). Ein Punkt ohne übrige Tags wird
-gelöscht, wenn er zu keinem Weg und keiner Relation gehört.
+gelöscht, wenn er zu keinem Weg und keiner Relation gehört. Ist man unsicher,
+erstellt „Vor Ort prüfen …“ einen OSM-Hinweis (Note) am Objekt.
 
 Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>
@@ -67,7 +68,9 @@ Für das Login braucht es eine OAuth-2-Anwendung auf openstreetmap.org
 (Einstellungen → OAuth 2-Anwendungen):
 
 * „Vertrauliche Anwendung“ **nicht** ankreuzen (PKCE, kein Secret)
-* Berechtigungen: `read_prefs`, `write_api`
+* Berechtigungen: `read_prefs`, `write_api`, `write_notes` („Benutzereinstellungen
+  lesen“, „Karte bearbeiten“, „Notizen bearbeiten“). Fehlt eine davon in der
+  Anwendung, schlägt das Login fehl.
 * Redirect-URIs:
   `https://osmcorrection.neumann-andreas.de/ https://cyper85.github.io/osmCorrection/ http://127.0.0.1:5173/`
   (OSM vergleicht exakt; der Hostname muss kleingeschrieben sein, so wie ihn

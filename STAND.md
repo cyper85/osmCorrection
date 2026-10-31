@@ -40,6 +40,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
 | `closure.ts` | „Gibt es nicht mehr“: je Tag behalten/löschen/`disused:`/`was:`, Vorbelegung, einzelnen Tag löschen |
+| `notes.ts` | „Vor Ort prüfen“: OSM-Hinweis (Note) am Objekt erstellen, erstellte Hinweise je Element merken |
 | `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
 | `map.ts` | Karte, Hervorhebung des aktuellen Elements, Marker für alle Funde |
@@ -116,6 +117,29 @@ Entschieden mit Andreas am 2026-10-31:
   dient der Anzeige.
 - Changeset-Kommentar: „existiert nicht mehr: 1 Objekt; …; entfernt: Website“.
 
+## Vor Ort prüfen (OSM-Hinweise)
+
+Entschieden mit Andreas am 2026-10-31: Ist unklar, ob es ein Objekt noch
+gibt, erstellt „Vor Ort prüfen …“ einen
+[OSM-Hinweis](https://wiki.openstreetmap.org/wiki/DE:Notes) an der Position
+des Objekts (vorbelegter, änderbarer Text mit Link und `#osmCorrection`).
+Hinweise statt `fixme=*`, weil sie die Daten nicht ändern und Mapper vor Ort
+(auch StreetComplete) sie sehen. Kein `check_date` setzen: Sonst fragt
+StreetComplete nicht mehr nach, ob es das Geschäft noch gibt.
+
+- Der Hinweis wird sofort erstellt, nicht mit dem Changeset. Nur angemeldet.
+- Braucht die OAuth-Berechtigung `write_notes`. Sie muss in der
+  OSM-Anwendung angehakt sein; alte Logins ohne sie bekommen 403, die
+  Meldung bittet um erneutes Anmelden.
+- Erstellte Hinweise merkt sich der Browser je Element
+  (`osmCorrection.notes`) und zeigt den Link beim Fund an.
+
+## Oberfläche
+
+Beim Auswählen bekommt die Karte den meisten Platz. Beim Prüfen und Hochladen
+wird die Seitenleiste breiter (45 %, mindestens 420 px; schmal: 70 % Höhe).
+„Geöffnet und geprüft“ ist wie „Übernehmen“ hervorgehoben.
+
 ## Overpass-Server
 
 Die öffentlichen Overpass-Server sind oft ausgelastet. overpass-api.de
@@ -158,7 +182,7 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Testen
 
-- `npm test`: Unit-Tests (vitest), 137 Tests. `test/messages.test.ts` liest
+- `npm test`: Unit-Tests (vitest), 141 Tests. `test/messages.test.ts` liest
   die Texte aus osmValidation und schlägt fehl, wenn eine Übersetzung fehlt.
 - `npm run smoke`: Browser-Test mit dem installierten Edge über
   `playwright-core` gegen den Vorschau-Server (`npm run build && npx vite

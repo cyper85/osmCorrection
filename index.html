@@ -84,7 +84,7 @@
             </p>
             <div class="row">
               <button type="submit" id="accept" class="primary">Übernehmen</button>
-              <button type="button" id="verify">Geöffnet und geprüft</button>
+              <button type="button" id="verify" class="primary">Geöffnet und geprüft</button>
               <button type="button" id="skip">Überspringen</button>
               <button type="button" id="back">Zurück</button>
             </div>
@@ -92,7 +92,23 @@
             <div class="row">
               <button type="button" id="remove-tag">Tag löschen</button>
               <button type="button" id="close-open">Gibt es nicht mehr …</button>
+              <button type="button" id="note-open">Vor Ort prüfen …</button>
             </div>
+            <p id="issue-note" class="hint" hidden></p>
+          </form>
+          <form id="note" class="notice" hidden>
+            <p>
+              <strong>Vor Ort prüfen:</strong> Erstellt einen
+              <a href="https://wiki.openstreetmap.org/wiki/DE:Notes" target="_blank" rel="noopener">OSM-Hinweis</a>
+              an diesem Objekt. Mapper vor Ort sehen ihn auf der Karte und in StreetComplete, die Daten bleiben unverändert.
+            </p>
+            <label for="note-text">Text des Hinweises</label>
+            <textarea id="note-text" rows="5"></textarea>
+            <div class="row">
+              <button type="submit" id="note-create" class="primary">Hinweis erstellen</button>
+              <button type="button" id="note-cancel">Abbrechen</button>
+            </div>
+            <p id="note-status" class="hint"></p>
           </form>
           <form id="closure" class="notice" hidden>
             <p><strong>Gibt es nicht mehr:</strong> Was soll mit den Tags passieren?</p>

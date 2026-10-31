@@ -25,6 +25,12 @@ const MAIN_KEYS = /^(shop|amenity|craft|office|healthcare|tourism|leisure|club)$
 const STRUCTURE_KEYS =
   /^(building(:.*)?|roof:.*|height|min_height|entrance|level|layer|indoor|area|wall|man_made|(disused|was|abandoned|demolished|removed|razed):.*)$/;
 
+/** The tag that says what the feature is, e.g. `shop=bakery`. */
+export function mainTag(tags: Record<string, string>): string | undefined {
+  const key = Object.keys(tags).find((k) => MAIN_KEYS.test(k));
+  return key === undefined ? undefined : `${key}=${tags[key]}`;
+}
+
 export function defaultAction(key: string, tags: Record<string, string>): TagAction {
   if (MAIN_KEYS.test(key)) {
     return 'disused';

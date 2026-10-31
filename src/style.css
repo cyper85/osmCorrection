@@ -62,15 +62,24 @@ body {
   min-height: 300px;
 }
 
+/* while reviewing and uploading the sidebar gets more room */
+body.editing #sidebar {
+  width: max(420px, 45%);
+}
+
 @media (max-width: 760px) {
   body {
     flex-direction: column-reverse;
   }
-  #sidebar {
+  #sidebar,
+  body.editing #sidebar {
     width: 100%;
     max-height: 55vh;
     border-right: none;
     border-top: 1px solid var(--border);
+  }
+  body.editing #sidebar {
+    max-height: 70vh;
   }
 }
 
