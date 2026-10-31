@@ -11,6 +11,16 @@ als ein Changeset hochladen. Vor dem Hochladen wird die aktuelle Version jedes
 Elements von der OSM-API geholt. Wurde ein Tag inzwischen von jemand anderem
 geändert, wird diese Änderung als Konflikt übersprungen.
 
+Zusätzlich gibt es eine Online-Prüfung der Wikidata-Verweise: Gibt es das
+Objekt noch, ist es eine Weiterleitung, und passt der `wikipedia`-Tag zu dem
+Artikel, der im Wikidata-Objekt verknüpft ist?
+
+Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
+übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>
+übernehmen, <kbd>Bild ↓</kbd> überspringen, <kbd>Bild ↑</kbd> zurück,
+<kbd>Esc</kbd> alten Wert wiederherstellen. Nicht hochgeladene Änderungen
+bleiben im Browser gespeichert, auch über ein Neuladen oder das Login hinweg.
+
 Alles läuft im Browser, es gibt keinen Server. Veröffentlicht wird über
 GitHub Pages.
 

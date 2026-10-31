@@ -40,6 +40,24 @@ export function osmUrl(ref: ElementRef): string {
   return `https://www.openstreetmap.org/${ref.type}/${ref.id}`;
 }
 
+/** A point to mark the element on the map. */
+export function elementCenter(element: OsmElement): LatLon | undefined {
+  if (element.lat !== undefined && element.lon !== undefined) {
+    return { lat: element.lat, lon: element.lon };
+  }
+  const points = element.geometry?.filter((p) => p !== null) ?? [];
+  if (points.length > 0) {
+    const lats = points.map((p) => p.lat);
+    const lons = points.map((p) => p.lon);
+    return { lat: (Math.min(...lats) + Math.max(...lats)) / 2, lon: (Math.min(...lons) + Math.max(...lons)) / 2 };
+  }
+  if (element.bounds !== undefined) {
+    const { minlat, minlon, maxlat, maxlon } = element.bounds;
+    return { lat: (minlat + maxlat) / 2, lon: (minlon + maxlon) / 2 };
+  }
+  return undefined;
+}
+
 const TYPE_LABELS: Record<ElementType, string> = {
   node: 'Punkt',
   way: 'Weg',

@@ -161,6 +161,32 @@ fieldset {
   padding: 0;
 }
 
+legend {
+  font-weight: 600;
+  padding: 0;
+  margin-top: 0.5em;
+}
+
+.notice {
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.notice p {
+  margin: 0;
+}
+
+kbd {
+  font-family: inherit;
+  font-size: 0.85em;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+}
+
 fieldset label {
   display: flex;
   gap: 8px;

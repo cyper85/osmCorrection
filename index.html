@@ -40,12 +40,22 @@
 
       <section id="step-select" hidden>
         <h2>1. Daten auswählen</h2>
+        <div id="pending" class="notice" hidden>
+          <p><strong id="pending-count"></strong> noch nicht hochgeladen.</p>
+          <div class="row">
+            <button type="button" id="pending-upload" class="primary">Ansehen und hochladen</button>
+            <button type="button" id="pending-discard">Verwerfen</button>
+          </div>
+        </div>
         <form id="search-form" class="row">
           <input type="search" id="search" placeholder="Ort suchen …" aria-label="Ort suchen" />
           <button type="submit">Suchen</button>
         </form>
         <p>Zoome in die Region, die du bearbeiten willst, und wähle aus, was geprüft werden soll:</p>
         <fieldset id="checks"></fieldset>
+        <fieldset id="online-checks">
+          <legend>Online-Prüfungen</legend>
+        </fieldset>
         <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
         <p id="download-hint" class="hint"></p>
       </section>
@@ -75,6 +85,10 @@
               <button type="button" id="back">Zurück</button>
             </div>
           </form>
+          <p class="hint keys">
+            <kbd>Enter</kbd> übernehmen · <kbd>Bild ↓</kbd> überspringen · <kbd>Bild ↑</kbd> zurück ·
+            <kbd>Esc</kbd> alten Wert wiederherstellen. Marker auf der Karte anklicken, um direkt zu einem Fund zu springen.
+          </p>
         </div>
         <p id="review-done" hidden>Alle Funde sind durchgesehen.</p>
         <p id="no-issues" hidden>Keine Funde in diesem Ausschnitt.</p>
@@ -95,6 +109,10 @@
           <button type="button" id="upload-back">Zurück</button>
         </div>
         <p id="upload-status" class="hint"></p>
+        <p id="upload-login-box" hidden>
+          Zum Hochladen musst du angemeldet sein. Deine Änderungen bleiben dabei erhalten.
+          <button type="button" id="upload-login" class="primary">Mit OpenStreetMap anmelden</button>
+        </p>
         <ul id="conflicts" class="diff conflicts"></ul>
       </section>
     </aside>
