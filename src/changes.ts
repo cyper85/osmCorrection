@@ -6,11 +6,38 @@ export interface TagChange {
   key: string;
   oldValue: string;
   newValue: string;
+  /** name of the element, for the list before the upload */
+  label?: string;
 }
 
-/** The tag changes the user has accepted, at most one per element and key. */
+function isTagChange(value: unknown): value is TagChange {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const change = value as Record<string, unknown>;
+  return (
+    (change.type === 'node' || change.type === 'way' || change.type === 'relation') &&
+    typeof change.id === 'number' &&
+    typeof change.key === 'string' &&
+    typeof change.oldValue === 'string' &&
+    typeof change.newValue === 'string' &&
+    (change.label === undefined || typeof change.label === 'string')
+  );
+}
+
+/**
+ * The tag changes the user has accepted, at most one per element and key.
+ * With a storage key, the changes survive a reload of the page (and the
+ * redirect of the OSM login).
+ */
 export class ChangeStore {
   private readonly changes = new Map<string, TagChange>();
+
+  constructor(private readonly storageKey?: string) {
+    for (const change of this.load()) {
+      this.changes.set(ChangeStore.id(change, change.key), change);
+    }
+  }
 
   private static id(ref: ElementRef, key: string): string {
     return `${elementKey(ref)}/${key}`;
@@ -24,6 +51,7 @@ export class ChangeStore {
     } else {
       this.changes.set(id, change);
     }
+    this.save();
   }
 
   get(ref: ElementRef, key: string): TagChange | undefined {
@@ -32,10 +60,12 @@ export class ChangeStore {
 
   delete(ref: ElementRef, key: string): void {
     this.changes.delete(ChangeStore.id(ref, key));
+    this.save();
   }
 
   clear(): void {
     this.changes.clear();
+    this.save();
   }
 
   get size(): number {
@@ -44,5 +74,32 @@ export class ChangeStore {
 
   list(): TagChange[] {
     return [...this.changes.values()];
+  }
+
+  private load(): TagChange[] {
+    if (this.storageKey === undefined) {
+      return [];
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem(this.storageKey) ?? '[]') as unknown;
+      return Array.isArray(stored) ? stored.filter(isTagChange) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private save(): void {
+    if (this.storageKey === undefined) {
+      return;
+    }
+    try {
+      if (this.changes.size === 0) {
+        localStorage.removeItem(this.storageKey);
+      } else {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.list()));
+      }
+    } catch {
+      // no storage: the changes only live until the page is closed
+    }
   }
 }

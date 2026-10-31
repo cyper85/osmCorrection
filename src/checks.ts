@@ -10,6 +10,7 @@ import {
   type CountryCode,
   type ValidationResult,
 } from 'osmvalidation';
+import { germanMessage } from './messages.js';
 import type { OsmElement } from './osm.js';
 
 export interface CheckContext {
@@ -97,12 +98,14 @@ export interface Issue extends Evaluation {
 
 export function evaluate(check: Check, value: string, context: CheckContext): Evaluation {
   const validate = (part: string): ValidationResult => {
+    let result: ValidationResult;
     try {
-      return check.validate(part, context);
+      result = check.validate(part, context);
     } catch {
       // e.g. a country code libphonenumber does not know
-      return check.validate(part, {});
+      result = check.validate(part, {});
     }
+    return { ...result, message: germanMessage(result) };
   };
 
   if (!check.multiValue) {
@@ -114,7 +117,7 @@ export function evaluate(check: Check, value: string, context: CheckContext): Ev
   const notes = multi.results
     .filter(({ result }) => !result.valid || result.suggestion !== undefined)
     .map(({ value: part, result }) => `${part}: ${result.message}`);
-  const message = notes.length > 0 ? notes.join('\n') : 'Value contains empty parts (";;")';
+  const message = notes.length > 0 ? notes.join('\n') : 'Wert enthält leere Teile („;;“ oder „;“ am Ende)';
   return multi.suggestion === undefined
     ? { valid: multi.valid, message }
     : { valid: multi.valid, message, suggestion: multi.suggestion };

@@ -30,17 +30,21 @@ export function logout(): void {
   auth.logout();
 }
 
-/** Finishes a login if OSM has just redirected back to the page. */
-export async function handleRedirect(): Promise<void> {
+/**
+ * Finishes a login if OSM has just redirected back to the page. Returns true
+ * if the user has just logged in.
+ */
+export async function handleRedirect(): Promise<boolean> {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('code') && !params.has('error')) {
-    return;
+    return false;
   }
   try {
     if (params.has('error')) {
       throw new Error(params.get('error_description') ?? params.get('error') ?? 'Login fehlgeschlagen');
     }
     await authenticate();
+    return true;
   } finally {
     window.history.replaceState(null, '', window.location.pathname);
   }
