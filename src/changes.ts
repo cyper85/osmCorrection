@@ -4,10 +4,16 @@ export interface TagChange {
   type: ElementType;
   id: number;
   key: string;
-  oldValue: string;
+  /** undefined: the tag is added */
+  oldValue?: string;
   newValue: string;
   /** name of the element, for the list before the upload */
   label?: string;
+  /**
+   * For a check_date: the tag and value the user has verified. The change is
+   * only applied if the tag has this value when uploading.
+   */
+  verifies?: { key: string; value: string };
 }
 
 function isTagChange(value: unknown): value is TagChange {
@@ -15,13 +21,16 @@ function isTagChange(value: unknown): value is TagChange {
     return false;
   }
   const change = value as Record<string, unknown>;
+  const verifies = change.verifies as Record<string, unknown> | undefined;
   return (
     (change.type === 'node' || change.type === 'way' || change.type === 'relation') &&
     typeof change.id === 'number' &&
     typeof change.key === 'string' &&
-    typeof change.oldValue === 'string' &&
+    (change.oldValue === undefined || typeof change.oldValue === 'string') &&
     typeof change.newValue === 'string' &&
-    (change.label === undefined || typeof change.label === 'string')
+    (change.label === undefined || typeof change.label === 'string') &&
+    (verifies === undefined ||
+      (typeof verifies === 'object' && verifies !== null && typeof verifies.key === 'string' && typeof verifies.value === 'string'))
   );
 }
 

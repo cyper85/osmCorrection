@@ -87,6 +87,15 @@ describe('websiteIssues', () => {
     expect(websiteIssues([node(1, { website: 'http://httponly.de/' })], results, [])).toEqual([]);
   });
 
+  it('skips websites with a recent check_date', () => {
+    const now = new Date(2026, 9, 31);
+    const element = node(1, { website: 'https://dead.de/', 'check_date:website': '2026-01-01' });
+    expect(websitesToProbe([element], now)).toEqual([]);
+    expect(websiteIssues([element], results, [], now)).toEqual([]);
+    const old = node(2, { website: 'https://dead.de/', 'check_date:website': '2020-01-01' });
+    expect(websiteIssues([old], results, [], now)).toHaveLength(1);
+  });
+
   it('skips keys that already have an issue', () => {
     const element = node(1, { website: 'https://dead.de/' });
     const existing = websiteIssues([element], results, []);

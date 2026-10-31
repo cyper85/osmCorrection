@@ -8,6 +8,15 @@ import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
 import { applyChanges, fetchCurrent, upload } from './osmApi.js';
 import { buildQuery, download } from './overpass.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
+import {
+  CHECK_INTERVAL_MONTHS,
+  checkDateKey,
+  CONFIRM_ONLINE,
+  confirmIssues,
+  isVerifiable,
+  openableUrl,
+  today,
+} from './verification.js';
 import { browserProbe, probeAll, WEBSITE_ONLINE, websiteIssues, websitesToProbe } from './websites.js';
 import './style.css';
 
@@ -112,6 +121,11 @@ function renderChecks(): void {
       'Antwortet der Server überhaupt, und gibt es http-Seiten auch per https? Fehlende Seiten (404) und ' +
         'Weiterleitungen erkennt der Browser nicht. Jede Website im Ausschnitt wird dafür von deinem Browser aufgerufen.',
     ),
+    checkbox(CONFIRM_ONLINE.id, CONFIRM_ONLINE.label, selected.has(CONFIRM_ONLINE.id)),
+    hint(
+      `Zeigt auch gültige Websites, Facebook- und X-Profile, die seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft ` +
+        'wurden. Du öffnest sie selbst und bestätigst sie, dann wird check_date:<Tag> gesetzt.',
+    ),
   );
   for (const id of ['checks', 'online-checks']) {
     $(id).addEventListener('change', () => {
@@ -164,6 +178,7 @@ async function startDownload(): Promise<void> {
   const checks = selectedChecks();
   const wikidataOnline = onlineSelected(WIKIDATA_ONLINE.id);
   const websiteOnline = onlineSelected(WEBSITE_ONLINE.id);
+  const confirmOnline = onlineSelected(CONFIRM_ONLINE.id);
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
   showError(undefined);
@@ -176,6 +191,9 @@ async function startDownload(): Promise<void> {
     }
     if (websiteOnline) {
       keyPatterns.push(WEBSITE_ONLINE.keyPattern);
+    }
+    if (confirmOnline) {
+      keyPatterns.push(CONFIRM_ONLINE.keyPattern);
     }
     const center = mapView.center();
     const [downloaded, country] = await Promise.all([
@@ -202,6 +220,9 @@ async function startDownload(): Promise<void> {
         hint.textContent = `Prüfe Websites … ${done} von ${total}`;
       });
       found = found.concat(websiteIssues(downloaded, results, found));
+    }
+    if (confirmOnline) {
+      found = found.concat(confirmIssues(downloaded, found));
     }
 
     // issues of one element one after the other, in download order
@@ -238,7 +259,10 @@ function issueState(index: number): MarkerState {
   if (index === current) {
     return 'current';
   }
-  if (issue !== undefined && changes.get(issue.element, issue.key) !== undefined) {
+  if (
+    issue !== undefined &&
+    (changes.get(issue.element, issue.key) !== undefined || changes.get(issue.element, checkDateKey(issue.key)) !== undefined)
+  ) {
     return 'changed';
   }
   return visited.has(index) ? 'skipped' : 'open';
@@ -293,14 +317,11 @@ function showIssue(): void {
   $('issue-key').textContent = issue.key;
   $('issue-value').textContent = issue.value;
   $('issue-message').textContent = issue.message;
-  const open = $<HTMLAnchorElement>('issue-open');
-  open.hidden = !/^https?:\/\//i.test(issue.value);
-  if (!open.hidden) {
-    open.href = issue.value;
-  }
 
   const input = $<HTMLInputElement>('issue-input');
   input.value = changes.get(issue.element, issue.key)?.newValue ?? issue.suggestion ?? issue.value;
+  // a confirmation from an earlier visit counts as opened
+  openedValue = changes.get(issue.element, checkDateKey(issue.key))?.verifies?.value;
   checkInput();
   input.focus();
   input.select();
@@ -313,6 +334,7 @@ function checkInput(): void {
     return;
   }
   const value = $<HTMLInputElement>('issue-input').value;
+  updateVerify(issue, value);
   const hint = $('issue-check');
   if (value.trim() === '') {
     hint.textContent = 'Der Wert darf nicht leer sein.';
@@ -332,23 +354,59 @@ function checkInput(): void {
   }
 }
 
-function accept(): void {
+/** The value the user has opened in a new tab for the current issue. */
+let openedValue: string | undefined;
+
+/**
+ * Shows the link to open the new value and enables "Geöffnet und geprüft"
+ * only for verifiable keys, and only once exactly this value was opened.
+ */
+function updateVerify(issue: Issue, value: string): void {
+  const verifiable = isVerifiable(issue.key);
+  const target = verifiable ? openableUrl(issue.key, value.trim()) : undefined;
+  const open = $<HTMLAnchorElement>('issue-open');
+  $('issue-open-row').hidden = target === undefined;
+  if (target !== undefined) {
+    open.href = target;
+  }
+  const verify = $<HTMLButtonElement>('verify');
+  const hint = $('verify-hint');
+  verify.hidden = !verifiable;
+  hint.hidden = !verifiable;
+  const ready = target !== undefined && openedValue === value.trim();
+  verify.disabled = !ready;
+  hint.textContent = ready
+    ? `Setzt ${checkDateKey(issue.key)}=${today()}.`
+    : target === undefined
+      ? 'Dieser Wert lässt sich nicht öffnen.'
+      : 'Erst im neuen Tab öffnen und ansehen, dann bestätigen.';
+}
+
+function accept(verified: boolean): void {
   const issue = issues[current];
   if (issue === undefined) {
     return;
   }
-  const value = $<HTMLInputElement>('issue-input').value;
-  if (value.trim() === '') {
+  const value = $<HTMLInputElement>('issue-input').value.trim();
+  if (value === '' || (verified && openedValue !== value)) {
     return;
   }
-  changes.set({
-    type: issue.element.type,
-    id: issue.element.id,
-    key: issue.key,
-    oldValue: issue.value,
-    newValue: value,
-    label: elementLabel(issue.element),
-  });
+  const ref = { type: issue.element.type, id: issue.element.id, label: elementLabel(issue.element) };
+  changes.set({ ...ref, key: issue.key, oldValue: issue.value, newValue: value });
+
+  const dateKey = checkDateKey(issue.key);
+  if (verified) {
+    changes.set({
+      ...ref,
+      key: dateKey,
+      oldValue: issue.element.tags[dateKey],
+      newValue: today(),
+      verifies: { key: issue.key, value },
+    });
+  } else {
+    // e.g. accepted without confirming on a second visit
+    changes.delete(issue.element, dateKey);
+  }
   goTo(current + 1);
 }
 
@@ -359,7 +417,14 @@ function updateChangeCount(): void {
 }
 
 function onReviewKey(event: KeyboardEvent): void {
-  if (step !== 'review' || issues[current] === undefined || event.altKey || event.ctrlKey || event.metaKey) {
+  if (step !== 'review' || issues[current] === undefined || event.altKey || event.metaKey) {
+    return;
+  }
+  if (event.ctrlKey) {
+    if (event.key === 'Enter' && !$<HTMLButtonElement>('verify').disabled) {
+      event.preventDefault();
+      accept(true);
+    }
     return;
   }
   if (event.key === 'PageDown') {
@@ -380,11 +445,18 @@ function onReviewKey(event: KeyboardEvent): void {
 // ---------------------------------------------------------------- step 3: upload
 
 function defaultComment(list: TagChange[]): string {
-  const keys = new Set(list.map((c) => c.key));
-  const labels = CHECKS.filter((check) => [...keys].some((key) => new RegExp(check.keyPattern).test(key))).map(
-    (check) => check.label,
-  );
-  return `Formatierung korrigiert: ${labels.join(', ')}`;
+  const labels = (keys: string[]) =>
+    CHECKS.filter((check) => keys.some((key) => new RegExp(check.keyPattern).test(key))).map((check) => check.label);
+  const corrected = labels(list.filter((c) => c.verifies === undefined).map((c) => c.key));
+  const verified = labels(list.flatMap((c) => (c.verifies === undefined ? [] : [c.verifies.key])));
+  const parts: string[] = [];
+  if (corrected.length > 0) {
+    parts.push(`Formatierung korrigiert: ${corrected.join(', ')}`);
+  }
+  if (verified.length > 0) {
+    parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
+  }
+  return parts.join('; ');
 }
 
 function code(text: string, className: string): HTMLElement {
@@ -401,7 +473,12 @@ function changeItem(change: TagChange, extra?: Node): HTMLLIElement {
   link.target = '_blank';
   link.rel = 'noopener';
   link.textContent = change.label ?? elementKey(change);
-  item.append(link, document.createElement('br'), code(change.key, ''), ': ', code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
+  item.append(link, document.createElement('br'), code(change.key, ''), ': ');
+  if (change.oldValue === undefined) {
+    item.append('neu ', code(change.newValue, 'new'));
+  } else {
+    item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
+  }
   if (extra !== undefined) {
     item.append(document.createElement('br'), extra);
   }
@@ -527,8 +604,16 @@ mapView.map.on('zoomend', updateDownloadButton);
 
 $('issue-form').addEventListener('submit', (event) => {
   event.preventDefault();
-  accept();
+  accept(false);
 });
+$('verify').addEventListener('click', () => accept(true));
+for (const type of ['click', 'auxclick'] as const) {
+  // left click or middle click: the user has opened the value
+  $('issue-open').addEventListener(type, () => {
+    openedValue = $<HTMLInputElement>('issue-input').value.trim();
+    checkInput();
+  });
+}
 $('issue-input').addEventListener('input', checkInput);
 $('skip').addEventListener('click', () => goTo(current + 1));
 $('back').addEventListener('click', () => goTo(current - 1));

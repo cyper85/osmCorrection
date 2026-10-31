@@ -21,7 +21,7 @@ aussortieren → ein Changeset (öffnen, hochladen, immer schließen).
 | Branch | Inhalt | Status |
 |---|---|---|
 | `master` | Neuaufbau (`b7907a3`), osmValidation auf master (`65941db`) | live, von Andreas getestet (Login + Upload) |
-| `verbesserungen` | deutsche Texte, Wikidata-Online-Prüfung, Karten-Marker, Speichern im Browser, Tastenkürzel (`07e4c19`); Website-Online-Prüfung, Smoke-Test, diese Datei | gepusht, **nicht gemergt** |
+| `verbesserungen` | deutsche Texte, Wikidata-Online-Prüfung, Karten-Marker, Speichern im Browser, Tastenkürzel (`07e4c19`); Website-Online-Prüfung, Smoke-Test, diese Datei; Overpass-Robustheit; check_date | gepusht, **nicht gemergt** |
 
 Hinweis: `b7907a3` verweist noch auf den osmValidation-Commit `8025fbe`, den
 es auf GitHub nicht mehr gibt (Branch wurde umgeschrieben und gelöscht). Nur
@@ -38,7 +38,8 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, ersatzweise nach Code) |
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
-| `changes.ts` | `ChangeStore`, eine Änderung je Element und Key, im `localStorage` gespeichert |
+| `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
+| `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), osmChange-XML, Upload |
 | `map.ts` | Karte, Hervorhebung des aktuellen Elements, Marker für alle Funde |
 | `nominatim.ts` | Ortssuche, Land der Kartenmitte (für Telefonnummern ohne `addr:country`) |
@@ -62,6 +63,32 @@ npm-Workspace. Prüfregeln gehören nach osmValidation, nicht hierher.
 - **Wikipedia-Abgleich:** Ob `wikipedia` oder `wikidata` falsch ist, lässt
   sich nicht automatisch entscheiden. Der Vorschlag ändert immer `wikipedia`,
   der Text weist darauf hin.
+
+## check_date (online bestätigte Werte)
+
+Entschieden mit Andreas am 2026-10-31:
+
+- Nur für Werte, die sich online prüfen lassen: `website`, `contact:website`,
+  `url`, `(contact:)facebook`, `(contact:)twitter`, `contact:x`. Telefon und
+  E-Mail bekommen kein `check_date`.
+- Nur ausdrücklich: Schaltfläche „Geöffnet und geprüft“ (oder Strg+Enter).
+  Sie wird erst aktiv, nachdem genau der Wert, der gespeichert wird, über
+  „Im neuen Tab öffnen“ geöffnet wurde. Eine reine Formatkorrektur setzt
+  kein `check_date`.
+- Schlüssel: `check_date:<geprüfter Key>`, z. B.
+  `check_date:contact:website`. Laut taginfo (2026-10-31) ist
+  `check_date:website` 2838-mal in Gebrauch, `check_date:contact:website`
+  2-mal, die Social-Media-Varianten gar nicht. Beim Lesen zählt für
+  `contact:website` auch `check_date:website`.
+- Intervall: `VITE_CHECK_INTERVAL_MONTHS` in `.env`, Standard 24 Monate.
+  Werte mit jüngerem `check_date` werden von „Websites online prüfen“ und
+  vom Bestätigen-Modus übersprungen. Formatfehler werden trotzdem gemeldet.
+- Modus „Websites und Profile bestätigen“ (Online-Prüfung): zeigt auch
+  gültige Werte ohne aktuelles `check_date` zum Bestätigen.
+- Beim Hochladen wird ein `check_date` nur geschrieben, wenn der geprüfte Tag
+  dann genau den geprüften Wert hat (`TagChange.verifies`). Fällt eine
+  Korrektur wegen eines Konflikts weg, fällt ihr `check_date` mit weg.
+- Changeset-Kommentar: „…; online geprüft (check_date): Websites, …“.
 
 ## Overpass-Server
 
@@ -105,7 +132,7 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Testen
 
-- `npm test`: Unit-Tests (vitest), 105 Tests. `test/messages.test.ts` liest
+- `npm test`: Unit-Tests (vitest), 124 Tests. `test/messages.test.ts` liest
   die Texte aus osmValidation und schlägt fehl, wenn eine Übersetzung fehlt.
 - `npm run smoke`: Browser-Test mit dem installierten Edge über
   `playwright-core` gegen den Vorschau-Server (`npm run build && npx vite
