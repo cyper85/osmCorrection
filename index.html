@@ -89,6 +89,23 @@
               <button type="button" id="back">Zurück</button>
             </div>
             <p id="verify-hint" class="hint" hidden></p>
+            <div class="row">
+              <button type="button" id="remove-tag">Tag löschen</button>
+              <button type="button" id="close-open">Gibt es nicht mehr …</button>
+            </div>
+          </form>
+          <form id="closure" class="notice" hidden>
+            <p><strong>Gibt es nicht mehr:</strong> Was soll mit den Tags passieren?</p>
+            <table id="closure-tags" class="tags"></table>
+            <p id="closure-result" class="hint"></p>
+            <div class="row">
+              <button type="submit" id="closure-apply" class="primary">Übernehmen</button>
+              <button type="button" id="closure-cancel">Abbrechen</button>
+            </div>
+            <p class="hint">
+              disused: für leer stehende Läden, was: für alles, was ganz verschwunden ist. Die Tags des
+              Gebäudes bleiben stehen. Die anderen Funde dieses Objekts werden danach übersprungen.
+            </p>
           </form>
           <p class="hint keys">
             <kbd>Enter</kbd> übernehmen · <kbd>Strg</kbd>+<kbd>Enter</kbd> geprüft (nach dem Öffnen) ·

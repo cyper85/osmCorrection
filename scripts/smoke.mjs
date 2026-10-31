@@ -95,6 +95,24 @@ if (await page.locator('#error').isVisible()) {
   const diff = await text('diff');
   check('check_date added as new tag', /check_date:.*neu \d{4}-\d{2}-\d{2}/s.test(diff), diff.replace(/\n/g, ' '));
   check('comment mentions the check', /online geprüft \(check_date\)/.test(await page.inputValue('#comment')), await page.inputValue('#comment'));
+
+  // no longer existing: choose per tag, the closure is listed and removed as a whole
+  await page.click('#upload-back');
+  await page.click('#close-open');
+  const rows = await page.locator('#closure-tags tr').count();
+  check('closure lists all tags', (await page.locator('#closure').isVisible()) && rows > 0, `${rows} Tags, ${await text('closure-result')}`);
+  await page.keyboard.press('Escape');
+  check('Esc closes the closure', !(await page.locator('#closure').isVisible()) && (await page.locator('#issue-form').isVisible()));
+  await page.click('#close-open');
+  await page.click('#closure-apply');
+  await page.click('#to-upload');
+  const closedDiff = await text('diff');
+  check('closure removes tags', /löschen/.test(closedDiff), closedDiff.replace(/\n/g, ' ').slice(0, 300));
+  check('comment mentions the closure', /existiert nicht mehr: 1 Objekt/.test(await page.inputValue('#comment')), await page.inputValue('#comment'));
+  const before = await page.locator('#diff li').count();
+  await page.locator('#diff button', { hasText: 'existiert nicht mehr' }).first().click();
+  const closedLeft = await page.locator('#diff button', { hasText: 'existiert nicht mehr' }).count();
+  check('closure is discarded as a whole', closedLeft === 0, `${before} → ${await page.locator('#diff li').count()} Änderungen`);
   await page.evaluate(() => localStorage.removeItem('osmCorrection.changes'));
 } else {
   check('confirm mode lists values to confirm', false, 'no values to confirm in the area');

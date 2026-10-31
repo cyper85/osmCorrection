@@ -93,9 +93,47 @@ export function applyChanges(
       conflicts.push({ change, reason: `Der geprüfte Wert von ${change.verifies.key} wird nicht hochgeladen` });
       continue;
     }
-    modified.set(key, { ...element, tags: { ...element.tags, [change.key]: change.newValue } });
+    const tags = { ...element.tags };
+    if (change.newValue === undefined) {
+      delete tags[change.key];
+    } else {
+      tags[change.key] = change.newValue;
+    }
+    modified.set(key, { ...element, tags });
   }
   return { modified: [...modified.values()], conflicts };
+}
+
+/** Whether a node is part of a way or relation (no login needed). */
+export async function nodeInUse(id: number): Promise<boolean> {
+  for (const parents of ['ways', 'relations']) {
+    const response = await fetch(`${API_URL}/node/${id}/${parents}.json`);
+    if (!response.ok) {
+      throw new Error(`OSM-API: HTTP ${response.status} ${await response.text()}`);
+    }
+    const data = (await response.json()) as { elements: unknown[] };
+    if (data.elements.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Nodes without tags that are not part of a way or relation are deleted
+ * instead of being left behind empty. Nodes in a way stay as vertices.
+ */
+export async function splitDeletions(
+  elements: ApiElement[],
+  inUse: (id: number) => Promise<boolean> = nodeInUse,
+): Promise<{ modify: ApiElement[]; remove: ApiElement[] }> {
+  const modify: ApiElement[] = [];
+  const remove: ApiElement[] = [];
+  for (const element of elements) {
+    const empty = element.type === 'node' && Object.keys(element.tags ?? {}).length === 0;
+    (empty && !(await inUse(element.id)) ? remove : modify).push(element);
+  }
+  return { modify, remove };
 }
 
 export function escapeXml(value: string): string {
@@ -120,7 +158,12 @@ export function changesetXml(tags: Record<string, string>): string {
   return `<osm><changeset>${tagsXml(tags)}</changeset></osm>`;
 }
 
-export function osmChangeXml(elements: ApiElement[], changesetId: number, generator: string): string {
+export function osmChangeXml(
+  elements: ApiElement[],
+  changesetId: number,
+  generator: string,
+  deleted: ApiElement[] = [],
+): string {
   const body = elements
     .map((el) => {
       const attrs = `id="${el.id}" version="${el.version}" changeset="${changesetId}"`;
@@ -141,7 +184,15 @@ export function osmChangeXml(elements: ApiElement[], changesetId: number, genera
       }
     })
     .join('');
-  return `<osmChange version="0.6" generator="${escapeXml(generator)}"><modify>${body}</modify></osmChange>`;
+  const modify = elements.length === 0 ? '' : `<modify>${body}</modify>`;
+  // if-unused: should a node have become part of a way in the meantime, it is kept instead of failing the upload
+  const remove =
+    deleted.length === 0
+      ? ''
+      : `<delete if-unused="true">${deleted
+          .map((el) => `<${el.type} id="${el.id}" version="${el.version}" changeset="${changesetId}"${el.type === 'node' ? ` lat="${el.lat}" lon="${el.lon}"` : ''}/>`)
+          .join('')}</delete>`;
+  return `<osmChange version="0.6" generator="${escapeXml(generator)}">${modify}${remove}</osmChange>`;
 }
 
 async function request(auth: AuthFetch, method: 'POST' | 'PUT', path: string, body?: string): Promise<string> {
@@ -157,21 +208,22 @@ async function request(auth: AuthFetch, method: 'POST' | 'PUT', path: string, bo
 }
 
 /**
- * Opens a changeset, uploads the modified elements and closes the changeset
- * again, even if the upload fails. Returns the changeset ID.
+ * Opens a changeset, uploads the modified (and deleted) elements and closes
+ * the changeset again, even if the upload fails. Returns the changeset ID.
  */
 export async function upload(
   auth: AuthFetch,
   elements: ApiElement[],
   changesetTags: Record<string, string>,
   generator: string,
+  deleted: ApiElement[] = [],
 ): Promise<number> {
   const changesetId = Number(await request(auth, 'PUT', '/changeset/create', changesetXml(changesetTags)));
   if (!Number.isInteger(changesetId)) {
     throw new Error('OSM-API: keine Changeset-ID erhalten');
   }
   try {
-    await request(auth, 'POST', `/changeset/${changesetId}/upload`, osmChangeXml(elements, changesetId, generator));
+    await request(auth, 'POST', `/changeset/${changesetId}/upload`, osmChangeXml(elements, changesetId, generator, deleted));
   } finally {
     await request(auth, 'PUT', `/changeset/${changesetId}/close`).catch(() => undefined);
   }

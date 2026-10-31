@@ -19,6 +19,12 @@ Websites, Facebook- und X-Profile kann man im neuen Tab öffnen und mit
 der Wert wird für 24 Monate (`VITE_CHECK_INTERVAL_MONTHS` in `.env`) nicht
 erneut vorgelegt.
 
+Einzelne Tags lassen sich löschen. Gibt es ein Geschäft nicht mehr, wählt man
+unter „Gibt es nicht mehr …“ für jeden Tag: behalten, löschen, `disused:` oder
+`was:` (vorbelegt: Gebäude bleibt, `shop=*` wird `disused:shop=*`, Name,
+Öffnungszeiten usw. werden gelöscht). Ein Punkt ohne übrige Tags wird
+gelöscht, wenn er zu keinem Weg und keiner Relation gehört.
+
 Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>
 übernehmen, <kbd>Bild ↓</kbd> überspringen, <kbd>Bild ↑</kbd> zurück,

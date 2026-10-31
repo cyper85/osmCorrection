@@ -2,10 +2,21 @@ import type { CountryCode } from 'osmvalidation';
 import { auth, CLIENT_ID, handleRedirect, login, logout, userName } from './auth.js';
 import { ChangeStore, type TagChange } from './changes.js';
 import { CHECKS, elementCountry, evaluate, findIssues, type Check, type Issue } from './checks.js';
+import {
+  applyClosure,
+  currentActions,
+  defaultActions,
+  isClosed,
+  previewClosure,
+  removeTag,
+  TAG_ACTIONS,
+  updateDeletion,
+  type TagAction,
+} from './closure.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
-import { applyChanges, fetchCurrent, upload } from './osmApi.js';
+import { applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
 import { buildQuery, download } from './overpass.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
 import {
@@ -317,9 +328,12 @@ function showIssue(): void {
   $('issue-key').textContent = issue.key;
   $('issue-value').textContent = issue.value;
   $('issue-message').textContent = issue.message;
+  hideClosure();
 
   const input = $<HTMLInputElement>('issue-input');
-  input.value = changes.get(issue.element, issue.key)?.newValue ?? issue.suggestion ?? issue.value;
+  const pending = changes.get(issue.element, issue.key);
+  input.value = pending === undefined ? (issue.suggestion ?? issue.value) : (pending.newValue ?? '');
+  $<HTMLButtonElement>('remove-tag').disabled = pending !== undefined && pending.newValue === undefined;
   // a confirmation from an earlier visit counts as opened
   openedValue = changes.get(issue.element, checkDateKey(issue.key))?.verifies?.value;
   checkInput();
@@ -337,8 +351,12 @@ function checkInput(): void {
   updateVerify(issue, value);
   const hint = $('issue-check');
   if (value.trim() === '') {
-    hint.textContent = 'Der Wert darf nicht leer sein.';
-    hint.className = 'hint bad';
+    const pending = changes.get(issue.element, issue.key);
+    const removed = pending !== undefined && pending.newValue === undefined;
+    hint.textContent = removed
+      ? 'Der Tag wird gelöscht. Einen Wert eingeben und übernehmen, um ihn doch zu behalten.'
+      : 'Der Wert darf nicht leer sein. Zum Entfernen „Tag löschen“ verwenden.';
+    hint.className = removed ? 'hint' : 'hint bad';
     return;
   }
   const result = evaluate(issue.check, value, contextFor(issue));
@@ -407,7 +425,100 @@ function accept(verified: boolean): void {
     // e.g. accepted without confirming on a second visit
     changes.delete(issue.element, dateKey);
   }
+  updateDeletion(changes, issue.element);
   goTo(current + 1);
+}
+
+// ---------------------------------------------------------------- no longer existing
+
+let closureActions: Record<string, TagAction> = {};
+
+function hideClosure(): void {
+  $('closure').hidden = true;
+  $('issue-form').hidden = false;
+}
+
+function openClosure(): void {
+  const issue = issues[current];
+  if (issue === undefined) {
+    return;
+  }
+  const pending = changes.forElement(issue.element);
+  const earlier = currentActions(issue.element, pending);
+  closureActions = isClosed(pending)
+    ? earlier
+    : {
+        ...defaultActions(issue.element),
+        ...Object.fromEntries(Object.entries(earlier).filter(([, action]) => action !== 'keep')),
+      };
+
+  $('closure-tags').replaceChildren(
+    ...Object.entries(issue.element.tags).map(([key, value]) => {
+      const row = document.createElement('tr');
+      const select = document.createElement('select');
+      select.setAttribute('aria-label', `${key}=${value}`);
+      for (const { action, label } of TAG_ACTIONS) {
+        select.append(Object.assign(document.createElement('option'), { value: action, textContent: label }));
+      }
+      select.value = closureActions[key] ?? 'keep';
+      select.addEventListener('change', () => {
+        closureActions[key] = select.value as TagAction;
+        updateClosure();
+      });
+      const cell = (...content: (Node | string)[]) => {
+        const td = document.createElement('td');
+        td.append(...content);
+        return td;
+      };
+      row.dataset.key = key;
+      row.append(cell(code(key, ''), '=', code(value, '')), cell(select));
+      return row;
+    }),
+  );
+  $('issue-form').hidden = true;
+  $('closure').hidden = false;
+  updateClosure();
+  $('closure-tags').querySelector('select')?.focus();
+}
+
+function updateClosure(): void {
+  const issue = issues[current];
+  if (issue === undefined) {
+    return;
+  }
+  for (const row of $('closure-tags').querySelectorAll<HTMLTableRowElement>('tr')) {
+    row.classList.toggle('removed', (closureActions[row.dataset.key ?? ''] ?? 'keep') !== 'keep');
+  }
+  const remaining = Object.entries(previewClosure(issue.element, closureActions, changes.forElement(issue.element)));
+  const apply = $<HTMLButtonElement>('closure-apply');
+  const result = $('closure-result');
+  apply.disabled = remaining.length === 0 && issue.element.type !== 'node';
+  if (remaining.length > 0) {
+    result.textContent = `Danach: ${remaining.map(([k, v]) => `${k}=${v}`).join(', ')}`;
+  } else if (issue.element.type === 'node') {
+    result.textContent = 'Keine Tags mehr übrig: Der Punkt wird gelöscht, wenn er zu keinem Weg und keiner Relation gehört.';
+  } else {
+    result.textContent = 'Mindestens ein Tag muss bleiben. Wege und Relationen lassen sich hier nicht löschen.';
+  }
+}
+
+/** The next issue of another element. */
+function nextElement(): number {
+  const element = issues[current]?.element;
+  let next = current + 1;
+  while (issues[next] !== undefined && issues[next]?.element === element) {
+    next++;
+  }
+  return next;
+}
+
+function confirmClosure(): void {
+  const issue = issues[current];
+  if (issue === undefined || $<HTMLButtonElement>('closure-apply').disabled) {
+    return;
+  }
+  applyClosure(changes, issue.element, closureActions);
+  goTo(nextElement());
 }
 
 function updateChangeCount(): void {
@@ -433,6 +544,10 @@ function onReviewKey(event: KeyboardEvent): void {
   } else if (event.key === 'PageUp') {
     event.preventDefault();
     goTo(current - 1);
+  } else if (event.key === 'Escape' && !$('closure').hidden) {
+    event.preventDefault();
+    hideClosure();
+    $('issue-input').focus();
   } else if (event.key === 'Escape') {
     event.preventDefault();
     const input = $<HTMLInputElement>('issue-input');
@@ -447,11 +562,20 @@ function onReviewKey(event: KeyboardEvent): void {
 function defaultComment(list: TagChange[]): string {
   const labels = (keys: string[]) =>
     CHECKS.filter((check) => keys.some((key) => new RegExp(check.keyPattern).test(key))).map((check) => check.label);
-  const corrected = labels(list.filter((c) => c.verifies === undefined).map((c) => c.key));
+  const own = list.filter((c) => c.verifies === undefined && c.closed === undefined);
+  const corrected = labels(own.filter((c) => c.newValue !== undefined).map((c) => c.key));
+  const removed = labels(own.filter((c) => c.newValue === undefined).map((c) => c.key));
   const verified = labels(list.flatMap((c) => (c.verifies === undefined ? [] : [c.verifies.key])));
+  const closed = new Set(list.filter((c) => c.closed === true).map((c) => elementKey(c))).size;
   const parts: string[] = [];
+  if (closed > 0) {
+    parts.push(`existiert nicht mehr: ${closed === 1 ? '1 Objekt' : `${closed} Objekte`}`);
+  }
   if (corrected.length > 0) {
     parts.push(`Formatierung korrigiert: ${corrected.join(', ')}`);
+  }
+  if (removed.length > 0) {
+    parts.push(`entfernt: ${removed.join(', ')}`);
   }
   if (verified.length > 0) {
     parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
@@ -466,7 +590,7 @@ function code(text: string, className: string): HTMLElement {
   return element;
 }
 
-function changeItem(change: TagChange, extra?: Node): HTMLLIElement {
+function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
   const item = document.createElement('li');
   const link = document.createElement('a');
   link.href = osmUrl(change);
@@ -474,30 +598,56 @@ function changeItem(change: TagChange, extra?: Node): HTMLLIElement {
   link.rel = 'noopener';
   link.textContent = change.label ?? elementKey(change);
   item.append(link, document.createElement('br'), code(change.key, ''), ': ');
-  if (change.oldValue === undefined) {
+  if (change.newValue === undefined) {
+    item.append(code(change.oldValue ?? '', 'old'), ' löschen');
+  } else if (change.oldValue === undefined) {
     item.append('neu ', code(change.newValue, 'new'));
   } else {
     item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
   }
-  if (extra !== undefined) {
-    item.append(document.createElement('br'), extra);
+  for (const node of extra) {
+    item.append(document.createElement('br'), node);
   }
   return item;
 }
 
+/** Removes a change before the upload; a closure is only removed as a whole. */
+function discardChange(change: TagChange): void {
+  const group = change.closed === true ? changes.forElement(change).filter((c) => c.closed === true) : [change];
+  for (const c of group) {
+    changes.delete(c, c.key);
+  }
+  // with a removal undone, a tag remains: the node is no longer deleted
+  if (group.some((c) => c.newValue === undefined)) {
+    for (const c of changes.forElement(change)) {
+      if (c.deleteIfUnused === true) {
+        const { deleteIfUnused: _, ...rest } = c;
+        changes.set(rest);
+      }
+    }
+  }
+}
+
 function renderDiff(): void {
   const list = changes.list();
+  const deletionShown = new Set<string>();
   $('diff').replaceChildren(
     ...list.map((change) => {
+      const extra: Node[] = [];
+      if (change.deleteIfUnused === true && !deletionShown.has(elementKey(change))) {
+        deletionShown.add(elementKey(change));
+        extra.push(document.createTextNode('Keine Tags mehr übrig: Der Punkt wird gelöscht, wenn er zu keinem Weg und keiner Relation gehört.'));
+      }
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'link';
-      remove.textContent = 'entfernen';
+      remove.textContent = change.closed === true ? '„existiert nicht mehr“ entfernen' : 'entfernen';
       remove.addEventListener('click', () => {
-        changes.delete(change, change.key);
+        discardChange(change);
         renderDiff();
       });
-      return changeItem(change, remove);
+      extra.push(remove);
+      return changeItem(change, ...extra);
     }),
   );
   $<HTMLButtonElement>('upload').disabled = list.length === 0 || !auth.authenticated();
@@ -541,8 +691,12 @@ async function startUpload(): Promise<void> {
       return;
     }
 
+    if (modified.some((el) => el.type === 'node' && Object.keys(el.tags ?? {}).length === 0)) {
+      status.textContent = 'Prüfe, ob leere Punkte noch zu Wegen oder Relationen gehören …';
+    }
+    const { modify, remove } = await splitDeletions(modified);
     status.textContent = `Lade ${modified.length} Elemente hoch …`;
-    const changesetId = await upload(auth, modified, { created_by: GENERATOR, comment }, GENERATOR);
+    const changesetId = await upload(auth, modify, { created_by: GENERATOR, comment }, GENERATOR, remove);
     changes.clear();
     renderDiff();
     status.replaceChildren(
@@ -553,6 +707,7 @@ async function startUpload(): Promise<void> {
         rel: 'noopener',
         textContent: `Changeset ${changesetId}`,
       }),
+      remove.length > 0 ? ` (${remove.length === 1 ? '1 Punkt' : `${remove.length} Punkte`} gelöscht)` : '',
       conflicts.length > 0 ? ` (${conflicts.length} Konflikte übersprungen)` : '',
     );
   } catch (error) {
@@ -615,6 +770,22 @@ for (const type of ['click', 'auxclick'] as const) {
   });
 }
 $('issue-input').addEventListener('input', checkInput);
+$('remove-tag').addEventListener('click', () => {
+  const issue = issues[current];
+  if (issue !== undefined) {
+    removeTag(changes, issue.element, issue.key);
+    goTo(current + 1);
+  }
+});
+$('close-open').addEventListener('click', openClosure);
+$('closure').addEventListener('submit', (event) => {
+  event.preventDefault();
+  confirmClosure();
+});
+$('closure-cancel').addEventListener('click', () => {
+  hideClosure();
+  $('issue-input').focus();
+});
 $('skip').addEventListener('click', () => goTo(current + 1));
 $('back').addEventListener('click', () => goTo(current - 1));
 document.addEventListener('keydown', onReviewKey);
