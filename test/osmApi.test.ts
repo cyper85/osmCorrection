@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { TagChange } from '../src/changes.js';
-import { applyChanges, changesetXml, escapeXml, osmChangeXml, upload, type ApiElement, type AuthFetch } from '../src/osmApi.js';
+import {
+  applyChanges,
+  changesetXml,
+  escapeXml,
+  osmChangeXml,
+  splitDeletions,
+  upload,
+  type ApiElement,
+  type AuthFetch,
+} from '../src/osmApi.js';
 
 const change: TagChange = { type: 'node', id: 1, key: 'phone', oldValue: '030 1', newValue: '+49 30 1' };
 
@@ -67,9 +76,34 @@ describe('applyChanges', () => {
     });
   });
 
+  it('removes tags, but only if they still have the old value', () => {
+    const removal: TagChange = { type: 'node', id: 1, key: 'website', oldValue: 'https://a.de/' };
+    const latest = current({ type: 'node', id: 1, version: 2, tags: { website: 'https://a.de/', name: 'A' } });
+    expect(applyChanges([removal], latest).modified[0]?.tags).toEqual({ name: 'A' });
+    const changed = current({ type: 'node', id: 1, version: 3, tags: { website: 'https://b.de/' } });
+    expect(applyChanges([removal], changed).conflicts[0]?.reason).toMatch(/geändert/);
+  });
+
   it('reports a conflict for deleted elements', () => {
     expect(applyChanges([change], current()).conflicts).toHaveLength(1);
     expect(applyChanges([change], current({ type: 'node', id: 1, version: 7, visible: false })).conflicts).toHaveLength(1);
+  });
+});
+
+describe('splitDeletions', () => {
+  it('deletes nodes without tags that are not used, keeps vertices and ways', async () => {
+    const inUse = async (id: number) => id === 2;
+    const { modify, remove } = await splitDeletions(
+      [
+        { type: 'node', id: 1, version: 1, lat: 0, lon: 0, tags: {} },
+        { type: 'node', id: 2, version: 1, lat: 0, lon: 0, tags: {} },
+        { type: 'node', id: 3, version: 1, lat: 0, lon: 0, tags: { name: 'A' } },
+        { type: 'way', id: 4, version: 1, nodes: [], tags: {} },
+      ],
+      inUse,
+    );
+    expect(remove.map((el) => el.id)).toEqual([1]);
+    expect(modify.map((el) => el.id)).toEqual([2, 3, 4]);
   });
 });
 
@@ -100,6 +134,14 @@ describe('XML', () => {
         '<way id="2" version="3" changeset="99"><nd ref="1"/><nd ref="3"/><tag k="website" v="https://a.de"/></way>' +
         '<relation id="4" version="1" changeset="99"><member type="way" ref="2" role="outer"/><tag k="type" v="multipolygon"/></relation>' +
         '</modify></osmChange>',
+    );
+  });
+
+  it('adds deleted nodes with if-unused', () => {
+    const xml = osmChangeXml([], 99, 'g', [{ type: 'node', id: 1, version: 4, lat: 50.1, lon: 10.2, tags: {} }]);
+    expect(xml).toBe(
+      '<osmChange version="0.6" generator="g"><delete if-unused="true">' +
+        '<node id="1" version="4" changeset="99" lat="50.1" lon="10.2"/></delete></osmChange>',
     );
   });
 });

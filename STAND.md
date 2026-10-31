@@ -39,8 +39,9 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
-| `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue Tags), im `localStorage` gespeichert |
-| `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), osmChange-XML, Upload |
+| `closure.ts` | „Gibt es nicht mehr“: je Tag behalten/löschen/`disused:`/`was:`, Vorbelegung, einzelnen Tag löschen |
+| `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
+| `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
 | `map.ts` | Karte, Hervorhebung des aktuellen Elements, Marker für alle Funde |
 | `nominatim.ts` | Ortssuche, Land der Kartenmitte (für Telefonnummern ohne `addr:country`) |
 | `osm.ts` | Typen und Hilfsfunktionen für OSM-Elemente |
@@ -90,6 +91,31 @@ Entschieden mit Andreas am 2026-10-31:
   Korrektur wegen eines Konflikts weg, fällt ihr `check_date` mit weg.
 - Changeset-Kommentar: „…; online geprüft (check_date): Websites, …“.
 
+## Tags löschen, „Gibt es nicht mehr“
+
+Entschieden mit Andreas am 2026-10-31:
+
+- „Tag löschen“ entfernt nur den Tag des aktuellen Fundes.
+- „Gibt es nicht mehr …“ zeigt alle Tags des Objekts, je Tag wählbar:
+  behalten, löschen, `disused:` (leer stehend) oder `was:` (ehemals), siehe
+  [Lifecycle prefix](https://wiki.openstreetmap.org/wiki/Lifecycle_prefix).
+  Vorbelegung: `shop`, `amenity`, `craft`, `office`, `healthcare`,
+  `tourism`, `leisure`, `club` → `disused:`; Gebäude-Tags (`building*`,
+  `roof:*`, `height`, `level`, `entrance`, …), vorhandene Lebenszyklus-Tags
+  und bei Gebäuden `addr:*` → behalten; alles andere → löschen.
+- Korrekturen behaltener Tags bleiben erhalten, `check_date` gelöschter Tags
+  fällt weg. Danach springt die Prüfung zum nächsten Objekt.
+- Bleibt kein Tag übrig: Ein Punkt wird gelöscht, aber nur, wenn er laut
+  OSM-API (`/node/<id>/ways`, `/relations`) zu keinem Weg und keiner Relation
+  gehört; sonst bleibt er als leerer Stützpunkt. Das gilt beim Hochladen für
+  jeden Punkt, der leer würde. Gelöscht wird mit `<delete if-unused="true">`,
+  damit ein inzwischen verwendeter Punkt den Upload nicht scheitern lässt.
+  Wege und Relationen können nicht leer werden (Schaltfläche gesperrt).
+- In der Liste vor dem Hochladen lässt sich eine Schließung nur als Ganzes
+  entfernen. `TagChange.closed` markiert ihre Änderungen, `deleteIfUnused`
+  dient der Anzeige.
+- Changeset-Kommentar: „existiert nicht mehr: 1 Objekt; …; entfernt: Website“.
+
 ## Overpass-Server
 
 Die öffentlichen Overpass-Server sind oft ausgelastet. overpass-api.de
@@ -132,7 +158,7 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Testen
 
-- `npm test`: Unit-Tests (vitest), 124 Tests. `test/messages.test.ts` liest
+- `npm test`: Unit-Tests (vitest), 137 Tests. `test/messages.test.ts` liest
   die Texte aus osmValidation und schlägt fehl, wenn eine Übersetzung fehlt.
 - `npm run smoke`: Browser-Test mit dem installierten Edge über
   `playwright-core` gegen den Vorschau-Server (`npm run build && npx vite
@@ -150,6 +176,9 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
    nach Art des Fundes anbieten.
 3. Marker-Farbe „übersprungen“ vs. „offen“ ist für Elemente mit mehreren
    Funden nur eine Näherung (der wichtigste Zustand gewinnt).
-4. Ideen: Fund-Liste/Filter in der Seitenleiste, Wikidata-ID für Elemente mit
+4. Eine Schließung steht vor dem Hochladen als eine Zeile je Tag in der
+   Liste, bei großen Objekten (z. B. 17 Tags) unübersichtlich. Eventuell je
+   Element gruppieren.
+5. Ideen: Fund-Liste/Filter in der Seitenleiste, Wikidata-ID für Elemente mit
    `wikipedia`, aber ohne `wikidata` vorschlagen (bräuchte das Hinzufügen von
    Tags, bisher werden nur vorhandene Werte geändert).

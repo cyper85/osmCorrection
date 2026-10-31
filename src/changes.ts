@@ -6,7 +6,8 @@ export interface TagChange {
   key: string;
   /** undefined: the tag is added */
   oldValue?: string;
-  newValue: string;
+  /** undefined: the tag is removed */
+  newValue?: string;
   /** name of the element, for the list before the upload */
   label?: string;
   /**
@@ -14,6 +15,10 @@ export interface TagChange {
    * only applied if the tag has this value when uploading.
    */
   verifies?: { key: string; value: string };
+  /** part of marking the element as no longer existing (see closure.ts) */
+  closed?: true;
+  /** all tags of the node are removed: it is deleted if it is not part of a way or relation */
+  deleteIfUnused?: true;
 }
 
 function isTagChange(value: unknown): value is TagChange {
@@ -27,8 +32,11 @@ function isTagChange(value: unknown): value is TagChange {
     typeof change.id === 'number' &&
     typeof change.key === 'string' &&
     (change.oldValue === undefined || typeof change.oldValue === 'string') &&
-    typeof change.newValue === 'string' &&
+    (change.newValue === undefined || typeof change.newValue === 'string') &&
+    (change.oldValue !== undefined || change.newValue !== undefined) &&
     (change.label === undefined || typeof change.label === 'string') &&
+    (change.closed === undefined || change.closed === true) &&
+    (change.deleteIfUnused === undefined || change.deleteIfUnused === true) &&
     (verifies === undefined ||
       (typeof verifies === 'object' && verifies !== null && typeof verifies.key === 'string' && typeof verifies.value === 'string'))
   );
@@ -70,6 +78,12 @@ export class ChangeStore {
   delete(ref: ElementRef, key: string): void {
     this.changes.delete(ChangeStore.id(ref, key));
     this.save();
+  }
+
+  /** All changes of one element. */
+  forElement(ref: ElementRef): TagChange[] {
+    const prefix = `${elementKey(ref)}/`;
+    return [...this.changes.entries()].filter(([id]) => id.startsWith(prefix)).map(([, change]) => change);
   }
 
   clear(): void {

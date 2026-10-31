@@ -49,6 +49,15 @@ describe('ChangeStore', () => {
     expect(new ChangeStore('test').list()).toEqual([checkDate]);
   });
 
+  it('stores removals and lists the changes of one element', () => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    const removal: TagChange = { type: 'node', id: 1, key: 'shop', oldValue: 'bakery', closed: true, deleteIfUnused: true };
+    const store = new ChangeStore('test');
+    store.set(removal);
+    store.set({ ...change, id: 2 });
+    expect(new ChangeStore('test').forElement({ type: 'node', id: 1 })).toEqual([removal]);
+  });
+
   it('survives a reload with a storage key', () => {
     vi.stubGlobal('localStorage', memoryStorage());
     new ChangeStore('test').set(change);
@@ -60,7 +69,7 @@ describe('ChangeStore', () => {
 
   it('ignores broken stored data', () => {
     vi.stubGlobal('localStorage', memoryStorage());
-    localStorage.setItem('test', JSON.stringify([change, { type: 'area', id: 1 }, 'x']));
+    localStorage.setItem('test', JSON.stringify([change, { type: 'area', id: 1 }, { type: 'node', id: 1, key: 'a' }, 'x']));
     expect(new ChangeStore('test').list()).toEqual([change]);
     localStorage.setItem('test', '{not json');
     expect(new ChangeStore('test').list()).toEqual([]);
