@@ -12,6 +12,8 @@ const BY_MESSAGE: Record<string, string> = {
   'Use "+" instead of "00" before the country code': 'Vor der Ländervorwahl „+“ statt „00“ verwenden',
   'Phone number is not in international format (+<country code> <number>)':
     'Telefonnummer ist nicht im internationalen Format (+<Ländervorwahl> <Nummer>)',
+  'Phone number is missing the "+" before the country code': 'Vor der Ländervorwahl fehlt das „+“',
+  'Use the phone number instead of a WhatsApp link': 'Telefonnummer statt eines WhatsApp-Links verwenden',
 
   'E-mail address has leading or trailing whitespace': 'E-Mail-Adresse hat Leerzeichen am Anfang oder Ende',
   'E-mail address must not start with "mailto:"': 'E-Mail-Adresse darf nicht mit „mailto:“ beginnen',
@@ -54,6 +56,23 @@ const BY_MESSAGE: Record<string, string> = {
   'Use the plain ID instead of a URL': 'Nur die ID statt einer URL verwenden',
   'Wikidata ID must be an upper case "Q" followed by digits': 'Wikidata-ID besteht aus einem großen „Q“ und Ziffern',
   'Not a Wikidata ID like "Q64"': 'Keine Wikidata-ID wie „Q64“',
+
+  'Valid Bluesky DID': 'Gültige Bluesky-DID',
+  'Valid Bluesky handle': 'Gültiger Bluesky-Name',
+  'Bluesky handle needs a domain, e.g. "name.bsky.social"': 'Bluesky-Name braucht eine Domain, z. B. „name.bsky.social“',
+  'Use the handle or the bsky.app profile URL': 'Bluesky-Name oder die bsky.app-Profil-URL verwenden',
+
+  'Matrix user name contains invalid characters': 'Matrix-Benutzername enthält unzulässige Zeichen',
+  'Matrix server is not a public domain': 'Matrix-Server ist keine öffentliche Domain',
+  'Valid Matrix user ID': 'Gültige Matrix-Benutzer-ID',
+  'Valid Matrix room alias': 'Gültiger Matrix-Raum',
+  'Use the Matrix ID instead of a matrix.to link': 'Matrix-ID statt eines matrix.to-Links verwenden',
+  'Not a Matrix ID like "@user:server" or "#room:server"': 'Keine Matrix-ID wie „@name:server“ oder „#raum:server“',
+
+  'Valid Tripadvisor location ID': 'Gültige Tripadvisor-ID',
+  'Use the number without the "d"': 'Die Zahl ohne das „d“ verwenden',
+  'Use the Tripadvisor location ID instead of the URL': 'Tripadvisor-ID statt der URL verwenden',
+  'Not a Tripadvisor location ID': 'Keine Tripadvisor-ID',
 };
 
 /** Fallback if osmValidation changes a message: a German text per code. */
@@ -66,6 +85,7 @@ const BY_CODE: Record<string, string> = {
   PHONE_TRUNK_PREFIX: 'Internationale Telefonnummer darf kein „(0)“ enthalten',
   PHONE_TEL_PREFIX: 'Telefonnummer darf nicht mit „tel:“ beginnen',
   PHONE_WHITESPACE: 'Telefonnummer hat Leerzeichen am Anfang oder Ende',
+  PHONE_PLUS_MISSING: 'Vor der Ländervorwahl fehlt das „+“',
   MAIL_VALID: 'Gültige E-Mail-Adresse',
   MAIL_INVALID: 'Ungültige E-Mail-Adresse',
   MAIL_DOMAIN_INVALID: 'Die Domain der E-Mail-Adresse ist ungültig',
