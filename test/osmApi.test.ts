@@ -1,0 +1,102 @@
+import { describe, expect, it } from 'vitest';
+import type { TagChange } from '../src/changes.js';
+import { applyChanges, changesetXml, escapeXml, osmChangeXml, upload, type ApiElement, type AuthFetch } from '../src/osmApi.js';
+
+const change: TagChange = { type: 'node', id: 1, key: 'phone', oldValue: '030 1', newValue: '+49 30 1' };
+
+function current(...elements: ApiElement[]): Map<string, ApiElement> {
+  return new Map(elements.map((el) => [`${el.type}/${el.id}`, el]));
+}
+
+describe('applyChanges', () => {
+  it('applies a change to the current version', () => {
+    const latest = current({ type: 'node', id: 1, version: 5, lat: 1, lon: 2, tags: { phone: '030 1', name: 'A' } });
+    const { modified, conflicts } = applyChanges([change], latest);
+    expect(conflicts).toEqual([]);
+    expect(modified).toEqual([{ type: 'node', id: 1, version: 5, lat: 1, lon: 2, tags: { phone: '+49 30 1', name: 'A' } }]);
+  });
+
+  it('combines several changes of one element', () => {
+    const latest = current({ type: 'node', id: 1, version: 5, tags: { phone: '030 1', fax: '030 2' } });
+    const { modified } = applyChanges([change, { ...change, key: 'fax', oldValue: '030 2', newValue: '+49 30 2' }], latest);
+    expect(modified).toHaveLength(1);
+    expect(modified[0]?.tags).toEqual({ phone: '+49 30 1', fax: '+49 30 2' });
+  });
+
+  it('reports a conflict if the tag was changed in the meantime', () => {
+    const latest = current({ type: 'node', id: 1, version: 6, tags: { phone: '+49 30 9' } });
+    const { modified, conflicts } = applyChanges([change], latest);
+    expect(modified).toEqual([]);
+    expect(conflicts[0]?.reason).toMatch(/geändert/);
+  });
+
+  it('reports a conflict for deleted elements', () => {
+    expect(applyChanges([change], current()).conflicts).toHaveLength(1);
+    expect(applyChanges([change], current({ type: 'node', id: 1, version: 7, visible: false })).conflicts).toHaveLength(1);
+  });
+});
+
+describe('XML', () => {
+  it('escapes attribute values', () => {
+    expect(escapeXml(`a&b<c>"d"'e'\nf`)).toBe('a&amp;b&lt;c&gt;&quot;d&quot;&apos;e&apos;&#10;f');
+  });
+
+  it('builds the changeset document', () => {
+    expect(changesetXml({ created_by: 'osmCorrection 0.1.0', comment: 'a & b' })).toBe(
+      '<osm><changeset><tag k="created_by" v="osmCorrection 0.1.0"/><tag k="comment" v="a &amp; b"/></changeset></osm>',
+    );
+  });
+
+  it('builds an osmChange document for all element types', () => {
+    const xml = osmChangeXml(
+      [
+        { type: 'node', id: 1, version: 2, lat: 50.1, lon: 10.2, tags: { phone: '+49 30 1' } },
+        { type: 'way', id: 2, version: 3, nodes: [1, 3], tags: { website: 'https://a.de' } },
+        { type: 'relation', id: 4, version: 1, members: [{ type: 'way', ref: 2, role: 'outer' }], tags: { type: 'multipolygon' } },
+      ],
+      99,
+      'osmCorrection 0.1.0',
+    );
+    expect(xml).toBe(
+      '<osmChange version="0.6" generator="osmCorrection 0.1.0"><modify>' +
+        '<node id="1" version="2" changeset="99" lat="50.1" lon="10.2"><tag k="phone" v="+49 30 1"/></node>' +
+        '<way id="2" version="3" changeset="99"><nd ref="1"/><nd ref="3"/><tag k="website" v="https://a.de"/></way>' +
+        '<relation id="4" version="1" changeset="99"><member type="way" ref="2" role="outer"/><tag k="type" v="multipolygon"/></relation>' +
+        '</modify></osmChange>',
+    );
+  });
+});
+
+describe('upload', () => {
+  function fakeAuth(uploadStatus: number): { auth: AuthFetch; calls: string[] } {
+    const calls: string[] = [];
+    const auth: AuthFetch = {
+      fetch: async (resource, options) => {
+        const path = resource.replace(/^.*\/api\/0\.6/, '');
+        calls.push(`${options.method} ${path}`);
+        if (path === '/changeset/create') {
+          return new Response('42');
+        }
+        if (path.endsWith('/upload')) {
+          return new Response('Version mismatch', { status: uploadStatus });
+        }
+        return new Response('');
+      },
+    };
+    return { auth, calls };
+  }
+
+  const elements: ApiElement[] = [{ type: 'node', id: 1, version: 2, lat: 0, lon: 0, tags: {} }];
+
+  it('opens, uploads and closes the changeset', async () => {
+    const { auth, calls } = fakeAuth(200);
+    await expect(upload(auth, elements, { comment: 'x' }, 'test')).resolves.toBe(42);
+    expect(calls).toEqual(['PUT /changeset/create', 'POST /changeset/42/upload', 'PUT /changeset/42/close']);
+  });
+
+  it('closes the changeset and reports the error if the upload fails', async () => {
+    const { auth, calls } = fakeAuth(409);
+    await expect(upload(auth, elements, { comment: 'x' }, 'test')).rejects.toThrow(/409 Version mismatch/);
+    expect(calls.at(-1)).toBe('PUT /changeset/42/close');
+  });
+});

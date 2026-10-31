@@ -1,96 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-    <head>
-        <title>OpenStreetMap Correction Tool</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="css/style.css"/>
-        <link rel="stylesheet" href="js/libs/leaflet/leaflet.css"/>
-        <link rel="shortcut icon" href="images/logo.ico">
-        <link rel="icon" href="images/logo.svg" sizes="any" type="image/svg+xml">
-        <!-- Latest compiled and minified CSS -->
-        <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-        <link href="js/libs/leaflet-search/src/leaflet-search.css" rel="stylesheet" type="text/css"/>
-    </head>
-    <body>
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-sm-3 col-md-3 col-lg-3 col-xs-12">
-                    <div class="state" id="stateZero">
-                        <button type="button" class="btn btn-default" id="osmLogin">login</button>
-                    </div>
-                    <div class="state hidden" id="stateOne">
-                        <h2>Daten herunterladen</h2>
-                        Zoome in die Region, die du bearbeiten willst und wähle die zu korrigierenden Daten:
-                        <div id="option-buttions">
-                            <button type="button" id="option-tel" class="option tel btn btn-default">Telefonnummern</button>
-                            <button type="button" id="option-mail" class="option mail btn btn-default">Emailadressen</button>
-                            <button type="button" id="option-url" class="option website btn btn-default">URLs</button>
-                            <button type="button" id="option-wiki" class="option wikpedia btn btn-default">Wikipedia</button>
-                            <button type="button" id="option-fb" class="option facebook btn btn-default">Facebook</button>
-                            <button type="button" id="option-twitter" class="option twitter btn btn-default">Twitter</button>
-                            <button type="button" id="option-xing" class="option xing btn btn-default">Xing</button>
-                            <button type="button" id="option-linkedin" class="option linkedin btn btn-default">LinkedIn</button>
-                            <button type="button" id="download" class="btn btn-danger hidden">Download</button>
-                        </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>osmCorrection</title>
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" href="./logo.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <header>
+        <img src="./logo.svg" alt="" width="32" height="32" />
+        <h1>osmCorrection</h1>
+      </header>
 
-                    </div>
-                    <div class="state hidden" id="stateTwo">
-                        <h2>Daten korrigieren</h2>
-                        <p id="syntax"></p>
-                    </div>
-                    <div class="state hidden" id="stateThree">
-                        <h2>Daten speichern</h2>
-                        <form class="form-control" role="form">
-                            <div class="form-group">
-                                <button id="save" class="form-control btn btn-success">speichern</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <div id="map" class="col-sm-offset-3 col-md-offset-3 col-lg-offset-3 col-sm-9 col-md-9 col-lg-9 col-xs-12"></div>
-            </div>
+      <p id="user" class="user" hidden>
+        Angemeldet als <strong id="user-name"></strong>
+        <button type="button" id="logout" class="link">Abmelden</button>
+      </p>
+
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section id="step-login">
+        <h2>Anmelden</h2>
+        <p>
+          Prüft und korrigiert Telefonnummern, E-Mail-Adressen, Websites und weitere
+          Angaben in OpenStreetMap. Jede Änderung bestätigst du einzeln, hochgeladen
+          wird mit deinem OSM-Konto.
+        </p>
+        <div class="row">
+          <button type="button" id="login" class="primary">Mit OpenStreetMap anmelden</button>
+          <button type="button" id="guest">Ohne Anmeldung ansehen</button>
         </div>
-        <script src="js/osmauth.min.js"></script>
-        <script src="js/libs/leaflet/leaflet.js" type="text/javascript"></script>
-        <script src="js/Leaflet.Control.Custom.js" type="text/javascript"></script>
-        <script src="js/libs/jquery/jquery.js" type="text/javascript"></script>
-        <script src="js/bootstrap.min.js" type="text/javascript"></script>
-        <script src="js/libs/1000hz-bootstrap-validator/validator.min.js" type="text/javascript"></script>
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="js/libs/leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
-        <script src="js/libs/leaflet-search/src/leaflet-search.js" type="text/javascript"></script>
-        <script src="js/libs/leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
-        <script src="js/libs/require.js/require.min.js" type="text/javascript"></script>
-        <script>
-            require.config({
-                baseUrl: "js"
-            });
-            var map;
-            var test = require(['main2'], function (main2) {
-                var lc = L.control.locate({
-                    flyTo: true,
-                    cacheLocation: true,
-                    drawCircle: false,
-                    drawMarker: false,
-                    showPopup: false,
-                    locateOptions: {
-                        maxZoom: 15
-                    }
-                }).addTo(map);
-                var search = new L.Control.Search({
-                    url: 'https://nominatim.openstreetmap.org/search?format=json&q={s}',
-                    jsonpParam: 'json_callback',
-                    propertyName: 'display_name',
-                    propertyLoc: ['lat', 'lon'],
-                    autoCollapse: true,
-                    autoType: false,
-                    minLength: 2,
-                    textPlaceholder: "Suche…",
-                    textErr: "Nichts gefunden",
-                    marker: false
-                }).addTo(map);
-            });
-        </script>
-    </body>
+        <p class="hint">Ohne Anmeldung kannst du prüfen, aber nicht hochladen.</p>
+        <p id="config-warning" class="error" hidden>
+          Keine OAuth-Client-ID konfiguriert (<code>VITE_OSM_CLIENT_ID</code> in <code>.env</code>).
+        </p>
+      </section>
+
+      <section id="step-select" hidden>
+        <h2>1. Daten auswählen</h2>
+        <form id="search-form" class="row">
+          <input type="search" id="search" placeholder="Ort suchen …" aria-label="Ort suchen" />
+          <button type="submit">Suchen</button>
+        </form>
+        <p>Zoome in die Region, die du bearbeiten willst, und wähle aus, was geprüft werden soll:</p>
+        <fieldset id="checks"></fieldset>
+        <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
+        <p id="download-hint" class="hint"></p>
+      </section>
+
+      <section id="step-review" hidden>
+        <h2>2. Prüfen</h2>
+        <p id="progress" class="hint"></p>
+        <div id="issue">
+          <p class="element">
+            <a id="issue-link" target="_blank" rel="noopener"></a>
+          </p>
+          <dl>
+            <dt>Tag</dt>
+            <dd><code id="issue-key"></code></dd>
+            <dt>Aktueller Wert</dt>
+            <dd><code id="issue-value"></code></dd>
+            <dt>Befund</dt>
+            <dd id="issue-message" class="message"></dd>
+          </dl>
+          <form id="issue-form">
+            <label for="issue-input">Neuer Wert</label>
+            <input id="issue-input" autocomplete="off" spellcheck="false" />
+            <p id="issue-check" class="hint"></p>
+            <div class="row">
+              <button type="submit" class="primary">Übernehmen</button>
+              <button type="button" id="skip">Überspringen</button>
+              <button type="button" id="back">Zurück</button>
+            </div>
+          </form>
+        </div>
+        <p id="review-done" hidden>Alle Funde sind durchgesehen.</p>
+        <p id="no-issues" hidden>Keine Funde in diesem Ausschnitt.</p>
+        <div class="row">
+          <button type="button" id="to-upload" class="primary">Weiter zum Hochladen</button>
+          <button type="button" id="restart">Neuer Ausschnitt</button>
+        </div>
+      </section>
+
+      <section id="step-upload" hidden>
+        <h2>3. Hochladen</h2>
+        <p>Diese Änderungen werden in einem Changeset hochgeladen:</p>
+        <ul id="diff" class="diff"></ul>
+        <label for="comment">Changeset-Kommentar</label>
+        <textarea id="comment" rows="3" required></textarea>
+        <div class="row">
+          <button type="button" id="upload" class="primary">Hochladen</button>
+          <button type="button" id="upload-back">Zurück</button>
+        </div>
+        <p id="upload-status" class="hint"></p>
+        <ul id="conflicts" class="diff conflicts"></ul>
+      </section>
+    </aside>
+    <main id="map"></main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
 </html>

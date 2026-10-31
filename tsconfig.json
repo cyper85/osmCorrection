@@ -1,24 +1,18 @@
 {
-    "compilerOptions": {
-        "outFile":"./js/main2.js",
-        "module": "amd",
-        "inlineSources": true,
-        "noImplicitAny": true,
-        "removeComments": true,
-        "preserveConstEnums": true,
-        "sourceMap": true,
-        "allowJs":true,
-        "types" : ["jquery", "leaflet","bootstrap-validator"]
-    },
-    "files": [
-        "js/osmObjectInterface.ts",
-        "js/correctionObject.ts",
-        "js/tel.ts",
-        "js/correctionTool.ts",
-        "js/main2.ts"
-    ],
-    "exclude": [
-        "node_modules",
-        "js/libs/**/*"
-    ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "osmvalidation": ["./libs/osmValidation/src/index.ts"]
+    }
+  },
+  "include": ["src", "test", "vite.config.ts"]
 }

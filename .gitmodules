@@ -1,0 +1,4 @@
+[submodule "libs/osmValidation"]
+	path = libs/osmValidation
+	url = https://github.com/cyper85/osmValidation.git
+	branch = modernisierung

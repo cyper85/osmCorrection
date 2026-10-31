@@ -1,28 +1,37 @@
 {
-  "name": "osmCorrection",
-  "version": "0.0.1",
-  "description": "",
-  "main": "js/main2.js",
-  "scripts": {
-    "test": "node_modules/mocha/bin/mocha",
-    "build": "node_modules/typescript/bin/tsc"
-  },
+  "name": "osmcorrection",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Check and correct OpenStreetMap tag values in the browser.",
+  "author": "Andreas Neumann <andr.neumann@googlemail.com>",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:cyper85/osmCorrection.git"
+    "url": "git+https://github.com/cyper85/osmCorrection.git"
   },
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/jquery": "^4.0.0",
-    "@types/leaflet": "^1.7.0",
-    "mocha": "^12.0.0",
-    "typescript": "^2"
+  "type": "module",
+  "workspaces": [
+    "libs/osmValidation"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@types/bootstrap-validator": "^0.11.0",
-    "leaflet": "^1.7.1",
-    "leaflet-search": "^2.9.9",
-    "osm-auth": "^3.0.0"
+    "leaflet": "^1.9.4",
+    "osm-auth": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
