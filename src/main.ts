@@ -1,7 +1,7 @@
 import type { CountryCode } from 'osmvalidation';
 import { auth, CLIENT_ID, handleRedirect, login, logout, userName } from './auth.js';
 import { ChangeStore, type TagChange } from './changes.js';
-import { CHECKS, coversKey, elementCountry, evaluate, findIssues, type Check, type Issue } from './checks.js';
+import { CHECKS, elementCountry, evaluate, findIssues, type Check, type Issue } from './checks.js';
 import {
   applyClosure,
   currentActions,
@@ -20,6 +20,7 @@ import {
   apiKey,
   ASSIST_ONLINE,
   assistIssues,
+  siteOf,
   costRange,
   dollars,
   errorText,
@@ -31,6 +32,7 @@ import {
   saveModel,
   selectedModel,
 } from './assist.js';
+import { aiModels, changesetComment, commentLength, MAX_COMMENT } from './comment.js';
 import { DUPLICATES, duplicateIssues } from './duplicates.js';
 import { SYNONYM_KEYS, synonymIssues } from './synonyms.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
@@ -371,7 +373,8 @@ async function startDownload(): Promise<void> {
       found = found.concat(confirmIssues(downloaded, found));
     }
     if (aiAssist) {
-      found = found.concat(assistIssues(downloaded));
+      // first among the findings of an element, so its suggestions come before the rest
+      found = [...assistIssues(downloaded), ...found];
     }
 
     // issues of one element one after the other, in download order
@@ -384,6 +387,7 @@ async function startDownload(): Promise<void> {
     current = 0;
     visited = new Set();
     assistRuns.clear();
+    assistActive = aiAssist;
     hint.textContent = '';
     mapView.showIssues(issues, goTo);
     showStep('review');
@@ -484,10 +488,30 @@ function showIssue(): void {
     pending !== undefined && pending.newValue === undefined && pending.movedTo === undefined;
   // a confirmation from an earlier visit counts as opened
   openedValue = changes.get(issue.element, checkDateKey(issue.key))?.verifies?.value;
+  // the finding of the AI has no value to edit, only the analysis
+  const noValue = issue.kind === 'assist';
+  $('issue-form').classList.toggle('no-value', noValue);
   checkInput();
-  input.focus();
-  input.select();
+  if (noValue) {
+    $('accept').focus();
+  } else {
+    input.focus();
+    input.select();
+  }
   mapView.show(issue.element);
+}
+
+/** „Übernehmen“ only if something changes, otherwise „Weiter“ (or „Löschen“ for a duplicate). */
+function acceptLabel(issue: Issue, value: string): string {
+  const trimmed = value.trim();
+  if (issue.kind === 'duplicate' && trimmed === '') {
+    return 'Löschen';
+  }
+  // moving to website:menu changes the key, not the value
+  if (issue.kind === 'move') {
+    return 'Übernehmen';
+  }
+  return trimmed === issue.value ? 'Weiter' : 'Übernehmen';
 }
 
 function checkInput(): void {
@@ -497,12 +521,15 @@ function checkInput(): void {
   }
   const value = $<HTMLInputElement>('issue-input').value;
   updateVerify(issue, value);
+  $('accept').textContent = acceptLabel(issue, value);
   const hint = $('issue-check');
   if (value.trim() === '') {
     const pending = changes.get(issue.element, issue.key);
     const removed = pending !== undefined && pending.newValue === undefined;
     if (issue.kind === 'duplicate') {
-      hint.textContent = `${removed ? 'Wird' : 'Übernehmen löscht'} ${issue.key}, der Wert bleibt in ${issue.duplicateOf}.`;
+      hint.textContent = removed
+        ? `${issue.key} wird gelöscht, der Wert bleibt in ${issue.duplicateOf}.`
+        : `„Löschen“ entfernt ${issue.key}, der Wert bleibt in ${issue.duplicateOf}.`;
       hint.className = 'hint ok';
       return;
     }
@@ -618,6 +645,8 @@ function accept(verified: boolean): void {
 
 /** Results of the AI per element, so its finding shows them again. */
 const assistRuns = new Map<string, { result: AssistResult; reused: boolean }>();
+/** whether „Mit KI abgleichen“ was chosen for the current area */
+let assistActive = false;
 let assistAbort: AbortController | undefined;
 
 function showQuote(issue: Issue): void {
@@ -630,9 +659,20 @@ function showQuote(issue: Issue): void {
   }
 }
 
+/**
+ * With „Mit KI abgleichen“, every finding of an element with a website offers
+ * the analysis, not only its own finding (except the findings of the AI).
+ */
+function canAssist(issue: Issue): boolean {
+  return (
+    issue.kind === 'assist' ||
+    (assistActive && issue.kind !== 'proposal' && issue.kind !== 'signal' && siteOf(issue.element) !== undefined)
+  );
+}
+
 function showAssist(issue: Issue): void {
-  $('assist').hidden = issue.kind !== 'assist';
-  if (issue.kind !== 'assist' || assistAbort !== undefined) {
+  $('assist').hidden = !canAssist(issue);
+  if (!canAssist(issue) || assistAbort !== undefined) {
     return;
   }
   const run = $<HTMLButtonElement>('assist-run');
@@ -676,23 +716,29 @@ function showAssistResult(result: AssistResult, reused: boolean): void {
   );
 }
 
-/** Puts the findings of the AI right after the finding at `index`, replacing those of an earlier run. */
-function insertAssistIssues(index: number, element: OsmElement, found: Issue[]): void {
-  const entries = issues
-    .map((issue, i) => ({ issue, seen: visited.has(i) }))
-    .filter(({ issue }, i) => i <= index || issue.element !== element || (issue.kind !== 'proposal' && issue.kind !== 'signal'));
-  entries.splice(index + 1, 0, ...found.map((issue) => ({ issue, seen: false })));
+/**
+ * Puts the findings of the AI right after `anchor` (the finding the analysis
+ * was started from), replacing those of an earlier run of the element.
+ */
+function insertAssistIssues(anchor: Issue, found: Issue[]): void {
+  const earlier = (issue: Issue) => issue.element === anchor.element && (issue.kind === 'proposal' || issue.kind === 'signal');
+  const entries = issues.map((issue, i) => ({ issue, seen: visited.has(i) })).filter(({ issue }) => !earlier(issue));
+  const at = entries.findIndex(({ issue }) => issue === anchor);
+  entries.splice(at + 1, 0, ...found.map((issue) => ({ issue, seen: false })));
+  const shown = issues[current];
   issues = entries.map(({ issue }) => issue);
   visited = new Set(entries.flatMap(({ seen }, i) => (seen ? [i] : [])));
+  // the finding on screen keeps its place, even if earlier findings were removed
+  const now = shown === undefined ? -1 : issues.indexOf(shown);
+  current = now === -1 ? Math.min(current, issues.length) : now;
   mapView.showIssues(issues, goTo);
 }
 
 async function runAssist(): Promise<void> {
   const issue = issues[current];
-  if (issue?.kind !== 'assist' || assistAbort !== undefined) {
+  if (issue === undefined || !canAssist(issue) || assistAbort !== undefined) {
     return;
   }
-  const index = current;
   const controller = new AbortController();
   assistAbort = controller;
   $<HTMLButtonElement>('assist-run').disabled = true;
@@ -708,7 +754,7 @@ async function runAssist(): Promise<void> {
       fresh,
     });
     assistRuns.set(elementKey(issue.element), { result, reused });
-    insertAssistIssues(index, issue.element, found);
+    insertAssistIssues(issue, found);
   } catch (error) {
     $('assist-status').textContent = errorText(error);
   } finally {
@@ -716,7 +762,7 @@ async function runAssist(): Promise<void> {
     $('assist-cancel').hidden = true;
     $<HTMLButtonElement>('assist-run').disabled = apiKey() === '' && !alreadyRead(issue.element);
   }
-  if (current === index && assistRuns.has(elementKey(issue.element))) {
+  if (issues[current] === issue && assistRuns.has(elementKey(issue.element))) {
     showIssue();
   }
 }
@@ -925,56 +971,6 @@ function onReviewKey(event: KeyboardEvent): void {
 
 // ---------------------------------------------------------------- step 3: upload
 
-/** The AI models whose suggestions are in the changes. */
-function aiModels(list: TagChange[]): string[] {
-  return [...new Set(list.flatMap((c) => (c.ai === undefined ? [] : [c.ai])))];
-}
-
-function defaultComment(list: TagChange[]): string {
-  // the label of the check, or the key itself (e.g. lunch:menu:url)
-  const labels = (keys: string[]) => [
-    ...new Set(keys.map((key) => CHECKS.find((check) => coversKey(check, key))?.label ?? key)),
-  ];
-  const own = list.filter(
-    (c) =>
-      c.verifies === undefined &&
-      c.closed === undefined &&
-      c.movedTo === undefined &&
-      c.movedFrom === undefined &&
-      c.ai === undefined,
-  );
-  const fromWebsite = labels(list.filter((c) => c.ai !== undefined && c.verifies === undefined).map((c) => c.key));
-  const moved = [...new Set(list.flatMap((c) => (c.movedFrom === undefined ? [] : [`${c.movedFrom} → ${c.key}`])))];
-  const corrected = labels(own.filter((c) => c.newValue !== undefined).map((c) => c.key));
-  const removed = labels(own.filter((c) => c.newValue === undefined && c.duplicateOf === undefined).map((c) => c.key));
-  const duplicates = labels(own.filter((c) => c.duplicateOf !== undefined).map((c) => c.key));
-  const verified = labels(list.flatMap((c) => (c.verifies === undefined || c.ai !== undefined ? [] : [c.verifies.key])));
-  const closed = new Set(list.filter((c) => c.closed === true).map((c) => elementKey(c))).size;
-  const parts: string[] = [];
-  if (closed > 0) {
-    parts.push(`existiert nicht mehr: ${closed === 1 ? '1 Objekt' : `${closed} Objekte`}`);
-  }
-  if (corrected.length > 0) {
-    parts.push(`Formatierung korrigiert: ${corrected.join(', ')}`);
-  }
-  if (removed.length > 0) {
-    parts.push(`entfernt: ${removed.join(', ')}`);
-  }
-  if (duplicates.length > 0) {
-    parts.push(`doppelte Angaben entfernt: ${duplicates.join(', ')}`);
-  }
-  if (moved.length > 0) {
-    parts.push(`umbenannt: ${moved.join(', ')}`);
-  }
-  if (fromWebsite.length > 0) {
-    parts.push(`von der Website übernommen, ausgewertet mit KI-Unterstützung (${aiModels(list).join(', ')}): ${fromWebsite.join(', ')}`);
-  }
-  if (verified.length > 0) {
-    parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
-  }
-  return parts.join('; ');
-}
-
 function code(text: string, className: string): HTMLElement {
   const element = document.createElement('code');
   element.className = className;
@@ -1075,11 +1071,19 @@ function renderDiff(): void {
 }
 
 function toUpload(): void {
-  $<HTMLTextAreaElement>('comment').value = defaultComment(changes.list());
+  $<HTMLTextAreaElement>('comment').value = changesetComment(changes.list());
+  updateCommentCount();
   $('upload-status').textContent = '';
   $('conflicts').replaceChildren();
   showStep('upload');
   renderDiff();
+}
+
+function updateCommentCount(): void {
+  const length = commentLength($<HTMLTextAreaElement>('comment').value.trim());
+  const count = $('comment-count');
+  count.textContent = `${length} von ${MAX_COMMENT} Zeichen`;
+  count.className = length > MAX_COMMENT ? 'hint bad' : 'hint';
 }
 
 async function startUpload(): Promise<void> {
@@ -1088,6 +1092,10 @@ async function startUpload(): Promise<void> {
   const button = $<HTMLButtonElement>('upload');
   if (comment === '') {
     status.textContent = 'Bitte einen Changeset-Kommentar eingeben.';
+    return;
+  }
+  if (commentLength(comment) > MAX_COMMENT) {
+    status.textContent = `Der Changeset-Kommentar ist zu lang (höchstens ${MAX_COMMENT} Zeichen), bitte kürzen.`;
     return;
   }
   showError(undefined);
@@ -1243,6 +1251,7 @@ function backToReview(): void {
 
 $('restart').addEventListener('click', restart);
 $('upload').addEventListener('click', () => void startUpload());
+$('comment').addEventListener('input', updateCommentCount);
 $('upload-back').addEventListener('click', backToReview);
 $('upload-continue').addEventListener('click', backToReview);
 $('upload-restart').addEventListener('click', restart);

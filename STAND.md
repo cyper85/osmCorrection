@@ -194,8 +194,16 @@ Umgesetzt am 2026-11-01:
   `opening_hours`-Parser erst beim ersten Auswerten nach (Haupt-Bundle
   bleibt bei ca. 365 KB).
 - Online-Prüfung „Mit KI abgleichen“ (`ai-assist`): ein Fund je Objekt mit
-  Website, dessen `check_date:opening_hours` fehlt oder alt ist. Darin
-  „Website mit KI auswerten“ (kostet Geld, nur auf Klick, abbrechbar).
+  Website, dessen `check_date:opening_hours` fehlt oder alt ist, als erster
+  Fund des Objekts. Darin „Website mit KI auswerten“ (kostet Geld, nur auf
+  Klick, abbrechbar). Die Schaltfläche steht auch bei allen anderen Funden
+  eines Objekts mit Website (nicht bei den KI-Funden selbst), solange die
+  Prüfung für den Ausschnitt gewählt ist.
+- Changeset-Kommentar (`comment.ts`): höchstens 255 Zeichen (Grenze der
+  OSM-API, am 2026-11-01 mit HTTP 400 aufgefallen). Zu lang: erst die
+  sozialen Netze als „soziale Netze“ zusammenfassen, dann nur die Arten der
+  Änderungen; die KI mit Modell bleibt immer genannt. Zähler unter dem
+  Feld, zu lange Kommentare werden vor dem Hochladen abgefangen.
 - Einstellungen in Schritt 1, sichtbar mit der Prüfung: API-Schlüssel
   (`sessionStorage`, mit „merken“ `localStorage`), Modell (Standard Claude
   Sonnet 5.5), Kostenspanne.

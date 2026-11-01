@@ -350,3 +350,9 @@ code {
   margin: 4px 0 0;
   padding-left: 1.2em;
 }
+
+#issue-form.no-value label[for='issue-input'],
+#issue-form.no-value #issue-input,
+#issue-form.no-value #issue-check {
+  display: none;
+}

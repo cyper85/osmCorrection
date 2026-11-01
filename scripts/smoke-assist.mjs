@@ -105,7 +105,7 @@ await page.route('https://api.anthropic.com/**', async (route) => {
 await page.goto(BASE);
 await page.evaluate(() => {
   localStorage.setItem('osmCorrection.view', JSON.stringify({ lat: 50.6815, lon: 10.9333, zoom: 16 }));
-  localStorage.setItem('osmCorrection.checks', JSON.stringify(['ai-assist']));
+  localStorage.setItem('osmCorrection.checks', JSON.stringify(['ai-assist', 'confirm-online']));
   localStorage.removeItem('osmCorrection.changes');
   localStorage.removeItem('osmCorrection.aiKey');
   sessionStorage.removeItem('osmCorrection.aiKey');
@@ -119,7 +119,8 @@ await page.locator('#ai-key').dispatchEvent('change');
 
 await page.click('#download');
 await page.waitForSelector('#step-review:not([hidden])');
-check('finding to analyze', await page.locator('#assist').isVisible(), await text('assist-status'));
+check('AI finding first', await page.locator('#assist').isVisible() && (await text('progress')).startsWith('Fund 1'), await text('assist-status'));
+check('AI finding: no value, button „Weiter“', !(await page.locator('#issue-input').isVisible()) && (await text('accept')) === 'Weiter', await text('accept'));
 
 await page.click('#assist-run');
 await page.waitForFunction(() => /Vorschl/.test(document.querySelector('#assist-status')?.textContent ?? ''), null, { timeout: 15_000 });
@@ -135,6 +136,7 @@ const sentKey = apiRequest?.headers['x-api-key'] ?? apiRequest?.headers.authoriz
 check('key sent to the API', sentKey === 'sk-ant-test', Object.keys(apiRequest?.headers ?? {}).filter((h) => /key|auth|anthropic/.test(h)).join(', '));
 
 await page.keyboard.press('Enter');
+check('suggestion: button „Übernehmen“', (await text('accept')) === 'Übernehmen', await text('accept'));
 check('opening hours suggested', (await text('issue-key')) === 'opening_hours' && (await page.inputValue('#issue-input')) === 'Mo-Fr 06:00-18:00; Sa 06:00-12:00');
 check('quote and source shown', /Montag bis Freitag/.test(await text('issue-quote')), (await text('issue-quote')).replace(/\n/g, ' '));
 if (process.env.SCREENSHOT) {
@@ -144,6 +146,19 @@ check('verify button hidden for suggestions', !(await page.locator('#verify').is
 await page.keyboard.press('Enter');
 check('new profile suggested', (await text('issue-key')) === 'contact:instagram' && (await text('issue-value')) === '(fehlt)');
 await page.keyboard.press('Enter');
+
+// the other findings of the element offer the analysis as well
+check(
+  'unchanged confirm finding: button „Weiter“',
+  (await text('accept')) === 'Weiter' && (await page.locator('#issue-input').isVisible()),
+  await text('accept'),
+);
+check(
+  'analysis also on the confirm finding',
+  (await page.locator('#assist').isVisible()) && (await text('assist-run')) === 'Erneut auswerten' && /Noch nie online geprüft/.test(await text('issue-message')),
+  await text('issue-message'),
+);
+await page.keyboard.press('PageDown');
 
 // same website: the reading is reused, compared with the tags of the building
 check('second element with the same website', await page.locator('#assist').isVisible(), await text('assist-status'));
@@ -155,6 +170,7 @@ check('only what differs for the building', /1 Vorschlag,/.test(await text('assi
 await page.keyboard.press('Enter');
 check('building gets the profile', (await text('issue-key')) === 'contact:instagram' && (await text('issue-link')) !== 'Bäckerei Sonnenschein');
 await page.keyboard.press('PageDown');
+check('no analysis on AI suggestions', !(await page.locator('#assist').isVisible()) || (await text('issue-message')).startsWith('Noch nie'));
 
 await page.click('#to-upload');
 const diff = (await text('diff')).replace(/\n/g, ' ');
