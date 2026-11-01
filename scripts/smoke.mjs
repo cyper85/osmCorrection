@@ -37,6 +37,19 @@ check('login step shown', await page.locator('#step-login').isVisible());
 await page.click('#guest');
 const sidebarWidth = () => page.locator('#sidebar').evaluate((el) => Math.round(el.getBoundingClientRect().width));
 const selectWidth = await sidebarWidth();
+
+// „Soziale Netze“: switched as a group, networks still chosen one by one
+const groupToggle = page.locator('#checks .group-toggle');
+const indeterminate = () => groupToggle.evaluate((el) => el.indeterminate);
+if (CHECKS.includes('facebook')) {
+  check('social group partly chosen', (await indeterminate()) && (await page.locator('#social-items').isVisible()), await text('social-count'));
+  await groupToggle.click();
+  check('group selects all networks', /\((\d+) von \1\)/.test(await text('social-count')), await text('social-count'));
+  await groupToggle.click();
+  check('group deselects all networks', /\(0 von/.test(await text('social-count')), await text('social-count'));
+  await page.click('#social-items input[value="facebook"]');
+  check('single network selectable', (await indeterminate()) && /\(1 von/.test(await text('social-count')), await text('social-count'));
+}
 await page.click('#download');
 await page.waitForSelector('#step-review:not([hidden]), #error:not([hidden])', { timeout: 300_000 });
 if (await page.locator('#error').isVisible()) {

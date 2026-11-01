@@ -1,12 +1,30 @@
 import {
+  bluesky,
+  diaspora,
   facebook,
+  flickr,
+  gnusocial,
+  instagram,
+  linkedin,
   mail,
+  mastodon,
+  matrix,
+  mobilizon,
   phone,
+  pinterest,
+  telegram,
+  tiktok,
+  tripadvisor,
   twitter,
   url,
   validateEach,
+  vimeo,
+  vk,
+  whatsapp,
   wikidata,
   wikipedia,
+  xing,
+  youtube,
   type CountryCode,
   type ValidationResult,
 } from 'osmvalidation';
@@ -29,6 +47,30 @@ export interface Check {
   /** Values may contain several parts separated by `;`. */
   multiValue: boolean;
   validate(value: string, context: CheckContext): ValidationResult;
+  /** shown and switched together under „Soziale Netze“ */
+  group?: 'social';
+  /** the value is a page or profile the user can open and confirm (check_date) */
+  verifiable?: true;
+}
+
+const withCountry = (country: CountryCode | undefined) => (country === undefined ? {} : { country });
+
+/** A social network or messenger with its key `contact:<id>` (or plain `<id>`). */
+function social(
+  id: string,
+  label: string,
+  validate: Check['validate'],
+  options: { verifiable?: boolean; multiValue?: boolean; keys?: string } = {},
+): Check {
+  return {
+    id,
+    label,
+    keyPattern: `^(contact:)?(${options.keys ?? id})$`,
+    multiValue: options.multiValue ?? false,
+    validate,
+    group: 'social',
+    ...(options.verifiable === false ? {} : { verifiable: true as const }),
+  };
 }
 
 export const CHECKS: Check[] = [
@@ -52,6 +94,7 @@ export const CHECKS: Check[] = [
     keyPattern: '^(contact:)?website$|^url$',
     multiValue: false,
     validate: (value) => url(value),
+    verifiable: true,
   },
   {
     id: 'wikipedia',
@@ -67,20 +110,29 @@ export const CHECKS: Check[] = [
     multiValue: true,
     validate: (value) => wikidata(value),
   },
-  {
-    id: 'facebook',
-    label: 'Facebook',
-    keyPattern: '^(contact:)?facebook$',
-    multiValue: false,
-    validate: (value) => facebook(value),
-  },
-  {
-    id: 'twitter',
-    label: 'X / Twitter',
-    keyPattern: '^(contact:)?(twitter|x)$',
-    multiValue: false,
-    validate: (value) => twitter(value),
-  },
+  social('facebook', 'Facebook', (value) => facebook(value)),
+  social('twitter', 'X / Twitter', (value) => twitter(value), { keys: 'twitter|x' }),
+  social('instagram', 'Instagram', (value) => instagram(value)),
+  social('tiktok', 'TikTok', (value) => tiktok(value)),
+  social('youtube', 'YouTube', (value) => youtube(value)),
+  social('linkedin', 'LinkedIn', (value) => linkedin(value)),
+  social('xing', 'XING', (value) => xing(value)),
+  social('pinterest', 'Pinterest', (value) => pinterest(value)),
+  social('vimeo', 'Vimeo', (value) => vimeo(value)),
+  social('flickr', 'Flickr', (value) => flickr(value)),
+  social('vk', 'VK', (value) => vk(value)),
+  social('mastodon', 'Mastodon', (value) => mastodon(value)),
+  social('bluesky', 'Bluesky', (value) => bluesky(value)),
+  social('mobilizon', 'Mobilizon', (value) => mobilizon(value)),
+  social('diaspora', 'diaspora*', (value) => diaspora(value)),
+  social('gnusocial', 'GNU social', (value) => gnusocial(value)),
+  social('telegram', 'Telegram', (value, { country }) => telegram(value, withCountry(country))),
+  social('whatsapp', 'WhatsApp', (value, { country }) => whatsapp(value, withCountry(country)), {
+    verifiable: false,
+    multiValue: true,
+  }),
+  social('matrix', 'Matrix', (value) => matrix(value), { verifiable: false }),
+  social('tripadvisor', 'Tripadvisor', (value) => tripadvisor(value), { verifiable: false }),
 ];
 
 export interface Evaluation {

@@ -34,8 +34,8 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `main.ts` | Oberfläche: Schritte login/select/review/upload, Verdrahtung aller Module |
 | `auth.ts` | `osm-auth` 3, OAuth 2 + PKCE im Single-Page-Modus (Redirect auf dieselbe Seite), Scopes `read_prefs write_api` |
 | `overpass.ts` | Abfrage für alle Key-Muster: `nw…; out meta geom; rel…; out meta bb;`, mehrere Server mit Zeitlimit und zweiter Runde (siehe unten) |
-| `checks.ts` | Formatprüfungen (`Check` mit `keyPattern` als POSIX-ERE, gilt in JS und Overpass), `findIssues`, Mehrfachwerte über `validateEach` |
-| `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, ersatzweise nach Code) |
+| `checks.ts` | Formatprüfungen (`Check` mit `keyPattern` als POSIX-ERE, gilt in JS und Overpass), `findIssues`, Mehrfachwerte über `validateEach`; 20 soziale Netze mit `group: 'social'`, `verifiable` für Werte, die man öffnen und bestätigen kann |
+| `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, dann nach Vorlage mit Plattformname, ersatzweise nach Code) |
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
@@ -70,9 +70,11 @@ npm-Workspace. Prüfregeln gehören nach osmValidation, nicht hierher.
 
 Entschieden mit Andreas am 2026-10-31:
 
-- Nur für Werte, die sich online prüfen lassen: `website`, `contact:website`,
-  `url`, `(contact:)facebook`, `(contact:)twitter`, `contact:x`. Telefon und
-  E-Mail bekommen kein `check_date`.
+- Nur für Werte, die sich online prüfen lassen (`Check.verifiable`):
+  `website`, `contact:website`, `url` und die sozialen Netze mit Profilseite.
+  Telefon, E-Mail, WhatsApp, Matrix und Tripadvisor bekommen kein
+  `check_date`. Werte ohne öffnbare URL (z. B. ein diaspora*-Name) zeigt der
+  Bestätigen-Modus nicht.
 - Nur ausdrücklich: Schaltfläche „Geöffnet und geprüft“ (oder Strg+Enter).
   Sie wird erst aktiv, nachdem genau der Wert, der gespeichert wird, über
   „Im neuen Tab öffnen“ geöffnet wurde. Eine reine Formatkorrektur setzt
@@ -134,6 +136,18 @@ StreetComplete nicht mehr nach, ob es das Geschäft noch gibt.
 - Erstellte Hinweise merkt sich der Browser je Element
   (`osmCorrection.notes`) und zeigt den Link beim Fund an.
 
+## Soziale Netze
+
+Alle Plattformen aus osmValidation (Facebook, X/Twitter, Instagram, TikTok,
+YouTube, LinkedIn, XING, Pinterest, Vimeo, Flickr, VK, Mastodon, Bluesky,
+Mobilizon, diaspora*, GNU social, Telegram, WhatsApp, Matrix, Tripadvisor)
+sind eigene Prüfungen für `contact:<name>` und `<name>`. In der Auswahl
+stehen sie unter „Soziale Netze“: ein Kästchen für alle (dreiwertig), die
+einzelnen Netze darunter aufklappbar. Die IDs `facebook` und `twitter` sind
+geblieben, gespeicherte Auswahlen gelten weiter. Neue Meldungen von
+osmValidation, die aus einer Vorlage mit dem Plattformnamen gebaut werden,
+prüft `test/messages.test.ts` ebenfalls.
+
 ## Oberfläche
 
 Beim Auswählen bekommt die Karte den meisten Platz. Beim Prüfen und Hochladen
@@ -182,7 +196,7 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Testen
 
-- `npm test`: Unit-Tests (vitest), 141 Tests. `test/messages.test.ts` liest
+- `npm test`: Unit-Tests (vitest), 160 Tests. `test/messages.test.ts` liest
   die Texte aus osmValidation und schlägt fehl, wenn eine Übersetzung fehlt.
 - `npm run smoke`: Browser-Test mit dem installierten Edge über
   `playwright-core` gegen den Vorschau-Server (`npm run build && npx vite

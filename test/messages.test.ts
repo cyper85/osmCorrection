@@ -21,15 +21,36 @@ function libraryMessages(): { code: string; message: string }[] {
   return found;
 }
 
+/** Messages built from a template with the platform name, e.g. `Valid ${name} URL`, filled in with "Instagram". */
+function templateMessages(): string[] {
+  const dir = new URL('../libs/osmValidation/src/', import.meta.url);
+  const found: string[] = [];
+  for (const file of readdirSync(dir)) {
+    const source = readFileSync(new URL(file, dir), 'utf8');
+    for (const [, template = ''] of source.matchAll(/`([^`]*\$\{name\}[^`]*)`/g)) {
+      found.push(template.replaceAll('${name}', 'Instagram'));
+    }
+  }
+  return found;
+}
+
 describe('germanMessage', () => {
   const messages = libraryMessages();
+  const templates = templateMessages();
 
   it('finds the messages of osmValidation', () => {
     expect(messages.length).toBeGreaterThan(30);
+    expect(templates.length).toBeGreaterThan(10);
   });
 
   it.each(messages)('translates $code: $message', (result) => {
     expect(germanMessage(result)).not.toBe(result.message);
+  });
+
+  it.each(templates)('translates the template "%s"', (message) => {
+    const german = germanMessage({ code: 'INSTAGRAM_X', message });
+    expect(german).not.toBe(message);
+    expect(german).toContain('Instagram');
   });
 
   it('falls back to the code, then to the original', () => {

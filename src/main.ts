@@ -127,9 +127,50 @@ function checkbox(id: string, label: string, checked: boolean): HTMLLabelElement
   return element;
 }
 
+/** „Soziale Netze“: one checkbox for the whole group, the networks below it can be chosen one by one. */
+function socialGroup(selected: Set<string>): HTMLElement {
+  const networks = CHECKS.filter((check) => check.group === 'social');
+  const group = document.createElement('div');
+  group.className = 'group';
+  const toggle = checkbox('', 'Soziale Netze', false);
+  toggle.querySelector('input')?.classList.add('group-toggle');
+  const count = Object.assign(document.createElement('span'), { id: 'social-count', className: 'hint' });
+  const expand = Object.assign(document.createElement('button'), { type: 'button', id: 'social-expand', className: 'link' });
+  const head = document.createElement('div');
+  head.className = 'group-head';
+  head.append(toggle, count, expand);
+  const items = Object.assign(document.createElement('div'), { id: 'social-items', className: 'group-items' });
+  items.append(...networks.map((check) => checkbox(check.id, check.label, selected.has(check.id))));
+  const chosen = networks.filter((check) => selected.has(check.id)).length;
+  // collapsed unless only some networks are chosen
+  items.hidden = chosen === 0 || chosen === networks.length;
+  expand.addEventListener('click', () => {
+    items.hidden = !items.hidden;
+    updateSocialGroup();
+  });
+  group.append(head, items);
+  return group;
+}
+
+function updateSocialGroup(): void {
+  const boxes = [...document.querySelectorAll<HTMLInputElement>('#social-items input')];
+  const chosen = boxes.filter((box) => box.checked).length;
+  const toggle = document.querySelector<HTMLInputElement>('#checks .group-toggle');
+  if (toggle !== null) {
+    toggle.checked = chosen === boxes.length;
+    toggle.indeterminate = chosen > 0 && chosen < boxes.length;
+  }
+  $('social-count').textContent = `(${chosen} von ${boxes.length})`;
+  $('social-expand').textContent = $('social-items').hidden ? 'einzeln wählen' : 'einklappen';
+}
+
 function renderChecks(): void {
   const selected = new Set(savedCheckIds());
-  $('checks').replaceChildren(...CHECKS.map((check) => checkbox(check.id, check.label, selected.has(check.id))));
+  $('checks').replaceChildren(
+    ...CHECKS.filter((check) => check.group === undefined).map((check) => checkbox(check.id, check.label, selected.has(check.id))),
+    socialGroup(selected),
+  );
+  updateSocialGroup();
   const hint = (text: string) => Object.assign(document.createElement('p'), { className: 'hint', textContent: text });
   $('online-checks').append(
     checkbox(WIKIDATA_ONLINE.id, WIKIDATA_ONLINE.label, selected.has(WIKIDATA_ONLINE.id)),
@@ -141,12 +182,19 @@ function renderChecks(): void {
     ),
     checkbox(CONFIRM_ONLINE.id, CONFIRM_ONLINE.label, selected.has(CONFIRM_ONLINE.id)),
     hint(
-      `Zeigt auch gültige Websites, Facebook- und X-Profile, die seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft ` +
+      `Zeigt auch gültige Websites und Profile in sozialen Netzen, die seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft ` +
         'wurden. Du öffnest sie selbst und bestätigst sie, dann wird check_date:<Tag> gesetzt.',
     ),
   );
   for (const id of ['checks', 'online-checks']) {
-    $(id).addEventListener('change', () => {
+    $(id).addEventListener('change', (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.classList.contains('group-toggle')) {
+        for (const box of document.querySelectorAll<HTMLInputElement>('#social-items input')) {
+          box.checked = target.checked;
+        }
+      }
+      updateSocialGroup();
       try {
         localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(selectedIds()));
       } catch {
@@ -158,7 +206,9 @@ function renderChecks(): void {
 }
 
 function selectedIds(): string[] {
-  return [...document.querySelectorAll<HTMLInputElement>('#checks input:checked, #online-checks input:checked')].map(
+  return [
+    ...document.querySelectorAll<HTMLInputElement>('#checks input:checked:not(.group-toggle), #online-checks input:checked'),
+  ].map(
     (box) => box.value,
   );
 }

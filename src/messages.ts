@@ -118,7 +118,38 @@ const BY_CODE: Record<string, string> = {
   WIKIDATA_INVALID: 'Keine Wikidata-ID wie „Q64“',
 };
 
+/**
+ * German texts for the messages osmValidation builds from a template with the
+ * name of the platform, e.g. "Valid Instagram URL" (platform.ts, fediverse.ts,
+ * messenger.ts).
+ */
+const BY_TEMPLATE: [RegExp, (name: string) => string][] = [
+  [/^Valid (.+) username$/, (n) => `Gültiger ${n}-Name`],
+  [/^Use the full URL of the (.+) profile instead of the username$/, (n) => `Vollständige URL des ${n}-Profils statt des Namens verwenden`],
+  [/^Not a link to a (.+) profile$/, (n) => `Kein Link auf ein ${n}-Profil`],
+  [/^Neither a (.+) username nor a link to a .+ profile$/, (n) => `Weder ein ${n}-Name noch ein Link auf ein ${n}-Profil`],
+  [/^Neither a (.+) handle nor a link to a .+ profile$/, (n) => `Weder eine ${n}-Adresse noch ein Link auf ein ${n}-Profil`],
+  [/^URL does not point to a public (.+) server$/, (n) => `URL zeigt nicht auf einen öffentlichen ${n}-Server`],
+  [/^URL does not point to a (.+) profile$/, (n) => `URL zeigt nicht auf ein ${n}-Profil`],
+  [/^(.+) URL points to a subpage instead of the profile$/, (n) => `${n}-URL zeigt auf eine Unterseite statt auf das Profil`],
+  [/^(.+) URL contains parameters$/, (n) => `${n}-URL enthält Parameter`],
+  [/^Valid (.+) URL$/, (n) => `Gültige ${n}-URL`],
+  [/^Not a valid (.+) handle$/, (n) => `Keine gültige ${n}-Adresse`],
+  [/^Valid (.+) handle$/, (n) => `Gültige ${n}-Adresse`],
+  [/^An emergency number cannot be a (.+) number$/, (n) => `Eine Notrufnummer kann keine ${n}-Nummer sein`],
+];
+
+function fromTemplate(message: string): string | undefined {
+  for (const [pattern, german] of BY_TEMPLATE) {
+    const name = pattern.exec(message)?.[1];
+    if (name !== undefined) {
+      return german(name);
+    }
+  }
+  return undefined;
+}
+
 /** German message for a validation result; the English original if unknown. */
 export function germanMessage(result: Pick<ValidationResult, 'code' | 'message'>): string {
-  return BY_MESSAGE[result.message] ?? BY_CODE[result.code] ?? result.message;
+  return BY_MESSAGE[result.message] ?? fromTemplate(result.message) ?? BY_CODE[result.code] ?? result.message;
 }
