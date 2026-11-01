@@ -13,7 +13,7 @@ import {
   updateDeletion,
   type TagAction,
 } from './closure.js';
-import { MapView, MIN_DOWNLOAD_ZOOM, type MarkerState } from './map.js';
+import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
 import { applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
@@ -78,6 +78,7 @@ function showStep(next: Step): void {
   if (next !== 'review') {
     mapView.clearHighlight();
   }
+  mapView.showSelection(next === 'select');
   if (next === 'select') {
     updatePending();
   }
@@ -225,15 +226,16 @@ function onlineSelected(id: string): boolean {
 function updateDownloadButton(): void {
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
+  const size = `${SELECTION_SIZE_M} m × ${SELECTION_SIZE_M} m`;
   if (!mapView.canDownload()) {
     button.disabled = true;
-    hint.textContent = `Bitte weiter hineinzoomen (mindestens Zoomstufe ${MIN_DOWNLOAD_ZOOM}).`;
+    hint.textContent = `Bitte weiter hineinzoomen (mindestens Zoomstufe ${MIN_DOWNLOAD_ZOOM}). Es lassen sich höchstens ${size} auf einmal laden.`;
   } else if (selectedIds().length === 0) {
     button.disabled = true;
     hint.textContent = 'Bitte mindestens eine Prüfung auswählen.';
   } else {
     button.disabled = false;
-    hint.textContent = '';
+    hint.textContent = `Geladen wird der Rahmen in der Kartenmitte, höchstens ${size}.`;
   }
 }
 
@@ -648,7 +650,15 @@ function updateChangeCount(): void {
 }
 
 function onReviewKey(event: KeyboardEvent): void {
-  if (step !== 'review' || issues[current] === undefined || event.altKey || event.metaKey) {
+  if (step !== 'review' || issues.length === 0 || event.altKey || event.metaKey) {
+    return;
+  }
+  // after the last finding only Bild ↑ goes back
+  if (issues[current] === undefined) {
+    if (event.key === 'PageUp') {
+      event.preventDefault();
+      goTo(current - 1);
+    }
     return;
   }
   // in the note text, Bild ↑/↓ and Strg+Enter belong to the text field

@@ -7,7 +7,8 @@ Netze“ gemeinsam oder einzeln wählbar). Die
 Prüfregeln kommen aus [osmValidation](https://github.com/cyper85/osmValidation),
 das als Git-Submodul eingebunden ist.
 
-Ablauf: Kartenausschnitt wählen → Daten über Overpass laden → jeden Fund
+Ablauf: Kartenausschnitt wählen (der Rahmen in der Kartenmitte, höchstens
+500 m × 500 m) → Daten über Overpass laden → jeden Fund
 einzeln übernehmen, ändern oder überspringen → Änderungen gesammelt prüfen und
 als ein Changeset hochladen. Vor dem Hochladen wird die aktuelle Version jedes
 Elements von der OSM-API geholt. Wurde ein Tag inzwischen von jemand anderem

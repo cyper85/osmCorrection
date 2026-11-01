@@ -9,7 +9,9 @@
 import { chromium } from 'playwright-core';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:4173/';
-const CHECKS = (process.env.CHECKS ?? 'phone,url,facebook').split(',');
+const CHECKS = (process.env.CHECKS ?? 'phone,mail,url,wikipedia,wikidata,facebook').split(',');
+// TU Ilmenau campus, where the 500 m frame had several findings in November 2026
+const [lat, lon, zoom] = (process.env.VIEW ?? '50.6815,10.9333,16').split(',').map(Number);
 const channel = process.env.BROWSER === 'chrome' ? 'chrome' : 'msedge';
 
 const browser = await chromium.launch({ channel, headless: process.env.HEADED === undefined });
@@ -25,18 +27,38 @@ function check(label, ok, detail = '') {
 }
 
 await page.goto(BASE);
-await page.evaluate((checks) => {
-  // Ilmenau, zoom 15
-  localStorage.setItem('osmCorrection.view', JSON.stringify({ lat: 50.684, lon: 10.917, zoom: 15 }));
-  localStorage.setItem('osmCorrection.checks', JSON.stringify(checks));
-  localStorage.removeItem('osmCorrection.changes');
-}, CHECKS);
+await page.evaluate(
+  ({ checks, view }) => {
+    localStorage.setItem('osmCorrection.view', JSON.stringify(view));
+    localStorage.setItem('osmCorrection.checks', JSON.stringify(checks));
+    localStorage.removeItem('osmCorrection.changes');
+  },
+  { checks: CHECKS, view: { lat, lon, zoom } },
+);
 await page.reload();
 
 check('login step shown', await page.locator('#step-login').isVisible());
 await page.click('#guest');
 const sidebarWidth = () => page.locator('#sidebar').evaluate((el) => Math.round(el.getBoundingClientRect().width));
 const selectWidth = await sidebarWidth();
+
+// download area: the 500 m frame; zoomed out too far, the download is disabled
+check('download hint names the limit', /500 m × 500 m/.test(await text('download-hint')), await text('download-hint'));
+// one zoom step at a time; a click during the zoom animation is lost
+async function zoomBy(steps) {
+  for (let i = 0; i < Math.abs(steps); i++) {
+    await page.click(steps < 0 ? '.leaflet-control-zoom-out' : '.leaflet-control-zoom-in');
+    await page.waitForTimeout(500);
+  }
+}
+if (process.env.SCREENSHOT) {
+  await page.screenshot({ path: process.env.SCREENSHOT.replace(/\.png$/, '-select.png') });
+}
+const below = zoom - 13;
+await zoomBy(-below);
+check('zoomed out to 13: download disabled', await page.locator('#download').isDisabled(), await text('download-hint'));
+await zoomBy(below);
+check('zoomed in again: download enabled', !(await page.locator('#download').isDisabled()));
 
 // „Soziale Netze“: switched as a group, networks still chosen one by one
 const groupToggle = page.locator('#checks .group-toggle');
@@ -77,10 +99,15 @@ if (await page.locator('#issue').isVisible()) {
   console.log(`  ${await text('issue-key')} = ${await text('issue-value')} → ${await page.inputValue('#issue-input')}`);
   console.log(`  ${(await text('issue-message')).replace(/\n/g, ' / ')}`);
 
+  // with a single finding, Bild ↓ ends the review
   await page.keyboard.press('PageDown');
-  check('PageDown skips', (await text('progress')).startsWith('Fund 2'));
+  check(
+    'PageDown skips',
+    (await text('progress')).startsWith('Fund 2') || (await page.locator('#review-done').isVisible()),
+    await text('progress'),
+  );
   await page.keyboard.press('PageUp');
-  check('PageUp goes back', (await text('progress')).startsWith('Fund 1'));
+  check('PageUp goes back', (await text('progress')).startsWith('Fund 1') && (await page.locator('#issue-input').isVisible()));
 
   await page.fill('#issue-input', 'changed by smoke test');
   await page.keyboard.press('Escape');
@@ -100,6 +127,8 @@ if (await page.locator('#issue').isVisible()) {
   page.once('dialog', (dialog) => dialog.accept());
   await page.click('#pending-discard');
   check('discard removes the change', !(await page.locator('#pending').isVisible()));
+} else {
+  check('findings in the frame', false, 'keine Funde, Ausschnitt (VIEW) oder Prüfungen (CHECKS) anpassen');
 }
 
 // confirm mode: open the website, then confirm it → check_date

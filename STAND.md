@@ -20,8 +20,11 @@ aussortieren → ein Changeset (öffnen, hochladen, immer schließen).
 
 | Branch | Inhalt | Status |
 |---|---|---|
-| `master` | Neuaufbau (`b7907a3`), osmValidation auf master (`65941db`) | live, von Andreas getestet (Login + Upload) |
-| `verbesserungen` | deutsche Texte, Wikidata-Online-Prüfung, Karten-Marker, Speichern im Browser, Tastenkürzel (`07e4c19`); Website-Online-Prüfung, Smoke-Test, diese Datei; Overpass-Robustheit; check_date | gepusht, **nicht gemergt** |
+| `master` | Neuaufbau, Renovate-Updates, alles aus `verbesserungen` | live, von Andreas getestet (Login, Upload, Schließung) |
+| `verbesserungen` | deutsche Texte, Online-Prüfungen, Marker, Speichern im Browser, Tastenkürzel, check_date, Schließen/Löschen, OSM-Hinweise, soziale Netze | am 2026-11-01 per Rebase nach `master` übernommen (gleicher Stand) |
+
+Andreas möchte eine lineare Historie: Branches per Rebase/Fast-Forward
+übernehmen, keine Merge-Commits.
 
 Hinweis: `b7907a3` verweist noch auf den osmValidation-Commit `8025fbe`, den
 es auf GitHub nicht mehr gibt (Branch wurde umgeschrieben und gelöscht). Nur
@@ -43,7 +46,8 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `notes.ts` | „Vor Ort prüfen“: OSM-Hinweis (Note) am Objekt erstellen, erstellte Hinweise je Element merken |
 | `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
-| `map.ts` | Karte, Hervorhebung des aktuellen Elements, Marker für alle Funde |
+| `map.ts` | Karte, Hervorhebung des aktuellen Elements, Marker für alle Funde, Auswahlrahmen |
+| `selection.ts` | Größe des Download-Rahmens (500 m × 500 m), Mindestzoom 14 |
 | `nominatim.ts` | Ortssuche, Land der Kartenmitte (für Telefonnummern ohne `addr:country`) |
 | `osm.ts` | Typen und Hilfsfunktionen für OSM-Elemente |
 
@@ -148,6 +152,22 @@ geblieben, gespeicherte Auswahlen gelten weiter. Neue Meldungen von
 osmValidation, die aus einer Vorlage mit dem Plattformnamen gebaut werden,
 prüft `test/messages.test.ts` ebenfalls.
 
+## Download-Bereich
+
+Entschieden mit Andreas am 2026-11-01: Geladen werden höchstens
+500 m × 500 m. Ein gestrichelter Rahmen liegt fest in der Kartenmitte, man
+verschiebt die Karte darunter; zeigt die Karte weniger, gilt der sichtbare
+Teil. Unter Zoom 14 ist der Rahmen zu klein, der Download ist dann gesperrt,
+der Hinweis nennt die Grenze. (Den sichtbaren Bereich auf 500 m zu begrenzen
+ginge erst ab etwa Zoom 19, deshalb der Rahmen.) Größe und Mindestzoom stehen
+in `src/selection.ts`.
+
+## Versionen
+
+`version` in `package.json`, steht als `created_by` in jedem Changeset.
+1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet). Neue Funktionen
+erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
+
 ## Oberfläche
 
 Beim Auswählen bekommt die Karte den meisten Platz. Beim Prüfen und Hochladen
@@ -196,27 +216,28 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Testen
 
-- `npm test`: Unit-Tests (vitest), 160 Tests. `test/messages.test.ts` liest
+- `npm test`: Unit-Tests (vitest), 162 Tests. `test/messages.test.ts` liest
   die Texte aus osmValidation und schlägt fehl, wenn eine Übersetzung fehlt.
 - `npm run smoke`: Browser-Test mit dem installierten Edge über
   `playwright-core` gegen den Vorschau-Server (`npm run build && npx vite
-  preview --port 4173`). Nutzt echte Overpass-Daten (Ilmenau), ohne Login.
+  preview --port 4173`). Nutzt echte Overpass-Daten (Rahmen auf dem Campus
+  der TU Ilmenau, `VIEW=lat,lon,zoom` und `CHECKS=…` zum Ändern), ohne
+  Login. Werden dort Funde korrigiert, braucht der Test eventuell einen
+  anderen Ausschnitt; er meldet dann „findings in the frame“ als Fehler.
 - Login und Upload lassen sich nur mit echtem OSM-Konto testen.
 - Overpass weist Node-Anfragen ohne User-Agent mit 406 ab. Im Browser ist das
   kein Problem, in Node-Skripten einen User-Agent setzen.
 
 ## Offene Punkte
 
-1. `verbesserungen` im Browser testen (Login aus dem Hochladen-Schritt) und
-   nach `master` mergen.
-2. Viele Funde bei „Websites online prüfen“ sind http → https (in Ilmenau
+1. Viele Funde bei „Websites online prüfen“ sind http → https (in Ilmenau
    etwa 180 von 390 Websites). Eventuell einen Filter oder eine Sortierung
    nach Art des Fundes anbieten.
-3. Marker-Farbe „übersprungen“ vs. „offen“ ist für Elemente mit mehreren
+2. Marker-Farbe „übersprungen“ vs. „offen“ ist für Elemente mit mehreren
    Funden nur eine Näherung (der wichtigste Zustand gewinnt).
-4. Eine Schließung steht vor dem Hochladen als eine Zeile je Tag in der
+3. Eine Schließung steht vor dem Hochladen als eine Zeile je Tag in der
    Liste, bei großen Objekten (z. B. 17 Tags) unübersichtlich. Eventuell je
    Element gruppieren.
-5. Ideen: Fund-Liste/Filter in der Seitenleiste, Wikidata-ID für Elemente mit
-   `wikipedia`, aber ohne `wikidata` vorschlagen (bräuchte das Hinzufügen von
-   Tags, bisher werden nur vorhandene Werte geändert).
+4. Ideen: Fund-Liste/Filter in der Seitenleiste, Wikidata-ID für Elemente mit
+   `wikipedia`, aber ohne `wikidata` vorschlagen (neue Tags gibt es seit
+   check_date, das wäre also machbar).

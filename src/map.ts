@@ -2,12 +2,12 @@ import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { elementCenter, elementLabel, type OsmElement } from './osm.js';
 import type { BBox } from './overpass.js';
+import { intersect, MIN_DOWNLOAD_ZOOM, selectionBounds } from './selection.js';
+
+export { MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M } from './selection.js';
 
 const VIEW_STORAGE_KEY = 'osmCorrection.view';
 const DEFAULT_VIEW = { lat: 50.6841, lon: 10.9171, zoom: 15 };
-
-/** Smallest zoom at which downloading is allowed, to keep Overpass queries small. */
-export const MIN_DOWNLOAD_ZOOM = 13;
 
 function savedView(): { lat: number; lon: number; zoom: number } {
   try {
@@ -39,6 +39,14 @@ export class MapView {
   readonly map: L.Map;
   private readonly highlight = L.featureGroup();
   private readonly markers = L.featureGroup();
+  /** frame of the area that is downloaded, in the centre of the map */
+  private readonly selection = L.rectangle(
+    [
+      [0, 0],
+      [0, 0],
+    ],
+    { color: '#2b6cb0', weight: 2, dashArray: '8 6', fillOpacity: 0.06, interactive: false },
+  );
   /** marker per issue index; issues of one element share a marker */
   private markerByIssue: (L.CircleMarker | undefined)[] = [];
 
@@ -64,10 +72,33 @@ export class MapView {
     });
   }
 
+  /** The area to download: the frame in the centre, or less if the map shows less. */
   bbox(): BBox {
     const b = this.map.getBounds();
-    return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+    const visible = { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+    const center = this.map.getCenter();
+    return intersect(selectionBounds(center.lat, center.lng), visible);
   }
+
+  /** Shows the selection frame, which follows the centre of the map. */
+  showSelection(visible: boolean): void {
+    if (!visible) {
+      this.map.off('move', this.updateSelection);
+      this.selection.remove();
+      return;
+    }
+    this.updateSelection();
+    this.selection.addTo(this.map);
+    this.map.on('move', this.updateSelection);
+  }
+
+  private readonly updateSelection = (): void => {
+    const { south, west, north, east } = this.bbox();
+    this.selection.setBounds([
+      [south, west],
+      [north, east],
+    ]);
+  };
 
   center(): { lat: number; lon: number } {
     const c = this.map.getCenter();
