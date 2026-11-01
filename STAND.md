@@ -289,6 +289,10 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Offene Punkte
 
+0. KI-Unterstützung: Entwurf in [docs/ki-unterstuetzung.md](docs/ki-unterstuetzung.md)
+   (2026-11-01 abgestimmt, noch nicht umgesetzt; Bibliothek `osmAssist` als
+   eigenes Repo).
+
 1. Viele Funde bei „Websites online prüfen“ sind http → https (in Ilmenau
    etwa 180 von 390 Websites). Eventuell einen Filter oder eine Sortierung
    nach Art des Fundes anbieten.
