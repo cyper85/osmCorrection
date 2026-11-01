@@ -1,7 +1,9 @@
 # osmCorrection
 
 Prüft und korrigiert OpenStreetMap-Daten im Browser: Telefon- und Faxnummern,
-E-Mail-Adressen, Websites, Wikipedia, Wikidata, Facebook und X/Twitter. Die
+E-Mail-Adressen, Websites, Wikipedia, Wikidata und 20 soziale Netze und
+Messenger (Facebook, X, Instagram, Mastodon, WhatsApp …, unter „Soziale
+Netze“ gemeinsam oder einzeln wählbar). Die
 Prüfregeln kommen aus [osmValidation](https://github.com/cyper85/osmValidation),
 das als Git-Submodul eingebunden ist.
 
@@ -14,7 +16,7 @@ geändert, wird diese Änderung als Konflikt übersprungen.
 Zusätzlich gibt es Online-Prüfungen: Gibt es das Wikidata-Objekt noch, ist
 es eine Weiterleitung, und passt der `wikipedia`-Tag zum verknüpften Artikel?
 Antwortet der Server einer Website, und gibt es http-Websites auch per https?
-Websites, Facebook- und X-Profile kann man im neuen Tab öffnen und mit
+Websites und Profile in sozialen Netzen kann man im neuen Tab öffnen und mit
 „Geöffnet und geprüft“ bestätigen; dann wird `check_date:<Tag>` gesetzt, und
 der Wert wird für 24 Monate (`VITE_CHECK_INTERVAL_MONTHS` in `.env`) nicht
 erneut vorgelegt.

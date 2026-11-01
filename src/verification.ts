@@ -9,17 +9,16 @@ import { elementKey, type OsmElement } from './osm.js';
  * checked again.
  */
 
-/** Keys whose values can be verified online, with the format check that applies. */
-const VERIFIABLE: { pattern: RegExp; check: string }[] = [
-  { pattern: /^(contact:)?website$|^url$/, check: 'url' },
-  { pattern: /^(contact:)?facebook$/, check: 'facebook' },
-  { pattern: /^(contact:)?(twitter|x)$/, check: 'twitter' },
-];
+/** Checks of keys whose values can be verified online: websites and profiles. */
+const VERIFIABLE = CHECKS.filter((check) => check.verifiable === true).map((check) => ({
+  check,
+  pattern: new RegExp(check.keyPattern),
+}));
 
 export const CONFIRM_ONLINE = {
   id: 'confirm-online',
   label: 'Websites und Profile bestätigen',
-  keyPattern: VERIFIABLE.map(({ pattern }) => pattern.source).join('|'),
+  keyPattern: VERIFIABLE.map(({ check }) => check.keyPattern).join('|'),
 } as const;
 
 const DEFAULT_INTERVAL_MONTHS = 24;
@@ -89,19 +88,32 @@ export function openableUrl(key: string, value: string): string | undefined {
   if (/^https?:\/\//i.test(value)) {
     return value;
   }
-  const check = VERIFIABLE.find(({ pattern }) => pattern.test(key))?.check;
-  if (check === 'facebook' && /^[\p{L}\p{N}._-]+$/u.test(value)) {
-    return facebookUrl(value);
+  switch (formatCheck(key)?.id) {
+    case 'facebook':
+      return /^[\p{L}\p{N}._-]+$/u.test(value) ? facebookUrl(value) : undefined;
+    case 'twitter':
+      return /^@?\w{1,15}$/.test(value) ? twitterUrl(value) : undefined;
+    case 'instagram':
+      return /^@?[\w.]+$/.test(value) ? `https://www.instagram.com/${value.replace(/^@/, '')}` : undefined;
+    case 'tiktok':
+      return /^@?[\w.]+$/.test(value) ? `https://www.tiktok.com/@${value.replace(/^@/, '')}` : undefined;
+    case 'telegram':
+      return /^@?[a-z]\w{4,31}$/i.test(value) ? `https://t.me/${value.replace(/^@/, '')}` : undefined;
+    case 'bluesky':
+      return /^@?[a-z0-9.-]+\.[a-z]{2,}$/i.test(value) ? `https://bsky.app/profile/${value.replace(/^@/, '')}` : undefined;
+    case 'mastodon':
+    case 'mobilizon': {
+      // "@user@server" → https://server/@user
+      const [, user, server] = /^@([^@\s/]+)@([^@\s/]+)$/.exec(value) ?? [];
+      return user === undefined || server === undefined ? undefined : `https://${server}/@${user}`;
+    }
+    default:
+      return undefined;
   }
-  if (check === 'twitter' && /^@?\w{1,15}$/.test(value)) {
-    return twitterUrl(value);
-  }
-  return undefined;
 }
 
 function formatCheck(key: string): Check | undefined {
-  const id = VERIFIABLE.find(({ pattern }) => pattern.test(key))?.check;
-  return CHECKS.find((check) => check.id === id);
+  return VERIFIABLE.find(({ pattern }) => pattern.test(key))?.check;
 }
 
 /**
@@ -119,7 +131,8 @@ export function confirmIssues(elements: OsmElement[], existing: Issue[], now = n
         check === undefined ||
         taken.has(`${elementKey(element)}/${key}`) ||
         isRecentlyChecked(element, key, now) ||
-        !evaluate(check, value, {}).valid
+        !evaluate(check, value, {}).valid ||
+        openableUrl(key, value) === undefined
       ) {
         continue;
       }
