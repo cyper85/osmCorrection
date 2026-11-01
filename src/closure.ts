@@ -115,6 +115,11 @@ export function removeTag(store: ChangeStore, element: OsmElement, key: string, 
   if (value === undefined) {
     return;
   }
+  // a move to another key is undone, only the removal stays
+  const moved = store.get(element, key)?.movedTo;
+  if (moved !== undefined) {
+    store.delete(element, moved.key);
+  }
   store.set({ ...ref(element), key, oldValue: value, ...(duplicateOf === undefined ? {} : { duplicateOf }) });
   dropConfirmations(store, element, key);
   updateDeletion(store, element);

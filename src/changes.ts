@@ -19,6 +19,13 @@ export interface TagChange {
   closed?: true;
   /** removed because the same value is in this key, e.g. contact:website */
   duplicateOf?: string;
+  /**
+   * removed because the value moves to another key (e.g. menu:url →
+   * website:menu); only applied if that key has the value when uploading
+   */
+  movedTo?: { key: string; value: string };
+  /** added with the value of this key, which is removed */
+  movedFrom?: string;
   /** all tags of the node are removed: it is deleted if it is not part of a way or relation */
   deleteIfUnused?: true;
 }
@@ -29,6 +36,7 @@ function isTagChange(value: unknown): value is TagChange {
   }
   const change = value as Record<string, unknown>;
   const verifies = change.verifies as Record<string, unknown> | undefined;
+  const movedTo = change.movedTo as Record<string, unknown> | undefined;
   return (
     (change.type === 'node' || change.type === 'way' || change.type === 'relation') &&
     typeof change.id === 'number' &&
@@ -39,6 +47,9 @@ function isTagChange(value: unknown): value is TagChange {
     (change.label === undefined || typeof change.label === 'string') &&
     (change.closed === undefined || change.closed === true) &&
     (change.duplicateOf === undefined || typeof change.duplicateOf === 'string') &&
+    (change.movedFrom === undefined || typeof change.movedFrom === 'string') &&
+    (movedTo === undefined ||
+      (typeof movedTo === 'object' && movedTo !== null && typeof movedTo.key === 'string' && typeof movedTo.value === 'string')) &&
     (change.deleteIfUnused === undefined || change.deleteIfUnused === true) &&
     (verifies === undefined ||
       (typeof verifies === 'object' && verifies !== null && typeof verifies.key === 'string' && typeof verifies.value === 'string'))

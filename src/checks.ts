@@ -164,10 +164,12 @@ export interface Issue extends Evaluation {
   check: Check;
   /**
    * 'confirm': the value is fine, the user is only asked to verify it online;
-   * 'duplicate': the same value is in `duplicateOf`, the tag is to be removed
+   * 'duplicate': the same value is in `duplicateOf`, the tag is to be removed;
+   * 'move': the value belongs in the key `moveTo` (e.g. menu:url → website:menu)
    */
-  kind?: 'confirm' | 'duplicate';
+  kind?: 'confirm' | 'duplicate' | 'move';
   duplicateOf?: string;
+  moveTo?: string;
 }
 
 export function evaluate(check: Check, value: string, context: CheckContext): Evaluation {

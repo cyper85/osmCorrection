@@ -28,6 +28,10 @@ demselben Wert, auch wenn er nur anders geschrieben ist (Schrägstrich am Ende,
 Großschreibung der E-Mail-Adresse, Reihenfolge mehrerer Nummern). Vorgeschlagen
 wird, den Tag ohne `contact:` zu löschen; `contact:*` bleibt.
 
+Gleichbedeutende Keys mit einer URL (`menu:url`, `url:menu`, `menu`,
+`lunch:menu:url`, `image:menu`, `image:menu:0`) werden bei der Prüfung
+„Websites“ nach `website:menu` verschoben.
+
 Einzelne Tags lassen sich löschen. Gibt es ein Geschäft nicht mehr, wählt man
 unter „Gibt es nicht mehr …“ für jeden Tag: behalten, löschen, `disused:` oder
 `was:` (vorbelegt: Gebäude bleibt, `shop=*` wird `disused:shop=*`, Name,

@@ -39,6 +39,36 @@ describe('applyChanges', () => {
     expect(conflicts[0]?.reason).toMatch(/geändert/);
   });
 
+  describe('moving a value to another key', () => {
+    const add: TagChange = { type: 'node', id: 1, key: 'website:menu', newValue: 'https://a.de/karte', movedFrom: 'menu:url' };
+    const remove: TagChange = {
+      type: 'node',
+      id: 1,
+      key: 'menu:url',
+      oldValue: 'https://a.de/karte',
+      movedTo: { key: 'website:menu', value: 'https://a.de/karte' },
+    };
+
+    it('adds the new key and removes the old one', () => {
+      const latest = current({ type: 'node', id: 1, version: 2, tags: { 'menu:url': 'https://a.de/karte' } });
+      const { modified, conflicts } = applyChanges([remove, add], latest);
+      expect(conflicts).toEqual([]);
+      expect(modified[0]?.tags).toEqual({ 'website:menu': 'https://a.de/karte' });
+    });
+
+    it('keeps the old key if the new one could not be set', () => {
+      const latest = current({
+        type: 'node',
+        id: 1,
+        version: 3,
+        tags: { 'menu:url': 'https://a.de/karte', 'website:menu': 'https://b.de/' },
+      });
+      const { modified, conflicts } = applyChanges([remove, add], latest);
+      expect(modified).toEqual([]);
+      expect(conflicts.map((c) => c.change.key).sort()).toEqual(['menu:url', 'website:menu']);
+    });
+  });
+
   describe('new tags and check_date', () => {
     const website: TagChange = { type: 'node', id: 1, key: 'website', oldValue: 'http://a.de/', newValue: 'https://a.de/' };
     const checkDate: TagChange = {

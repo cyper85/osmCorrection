@@ -14,6 +14,7 @@ import {
   type TagAction,
 } from './closure.js';
 import { DUPLICATES, duplicateIssues } from './duplicates.js';
+import { SYNONYM_KEYS, synonymIssues } from './synonyms.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
@@ -271,6 +272,10 @@ async function startDownload(): Promise<void> {
     if (duplicates) {
       keyPatterns.push(DUPLICATES.keyPattern);
     }
+    const synonyms = checks.some((check) => check.id === 'url');
+    if (synonyms) {
+      keyPatterns.push(SYNONYM_KEYS);
+    }
     const center = mapView.center();
     const [downloaded, country] = await Promise.all([
       download(buildQuery(keyPatterns, mapView.bbox()), {
@@ -282,15 +287,18 @@ async function startDownload(): Promise<void> {
     ]);
     fallbackCountry = country;
     let found = findIssues(downloaded, checks, fallbackCountry);
-    if (duplicates) {
-      // a duplicate is removed, so there is nothing to correct in it
-      const removed = duplicateIssues(downloaded, (element) => {
-        const country = elementCountry(element, fallbackCountry);
-        return country === undefined ? {} : { country };
-      });
-      const isRemoved = (issue: Issue) => removed.some((r) => r.element === issue.element && r.key === issue.key);
-      found = [...removed, ...found.filter((issue) => !isRemoved(issue))];
-    }
+    // tags that are removed or moved come first; there is nothing else to correct in them
+    const replaced = [
+      ...(synonyms ? synonymIssues(downloaded) : []),
+      ...(duplicates
+        ? duplicateIssues(downloaded, (element) => {
+            const country = elementCountry(element, fallbackCountry);
+            return country === undefined ? {} : { country };
+          })
+        : []),
+    ];
+    const isReplaced = (issue: Issue) => replaced.some((r) => r.element === issue.element && r.key === issue.key);
+    found = [...replaced, ...found.filter((issue) => !isReplaced(issue))];
 
     if (wikidataOnline) {
       hint.textContent = 'Prüfe Wikidata …';
@@ -408,8 +416,13 @@ function showIssue(): void {
   const input = $<HTMLInputElement>('issue-input');
   const pending = changes.get(issue.element, issue.key);
   input.value =
-    pending === undefined ? (issue.kind === 'duplicate' ? '' : (issue.suggestion ?? issue.value)) : (pending.newValue ?? '');
-  $<HTMLButtonElement>('remove-tag').disabled = pending !== undefined && pending.newValue === undefined;
+    pending === undefined
+      ? issue.kind === 'duplicate'
+        ? ''
+        : (issue.suggestion ?? issue.value)
+      : (pending.newValue ?? pending.movedTo?.value ?? '');
+  $<HTMLButtonElement>('remove-tag').disabled =
+    pending !== undefined && pending.newValue === undefined && pending.movedTo === undefined;
   // a confirmation from an earlier visit counts as opened
   openedValue = changes.get(issue.element, checkDateKey(issue.key))?.verifies?.value;
   checkInput();
@@ -497,6 +510,13 @@ function accept(verified: boolean): void {
     return;
   }
   const ref = { type: issue.element.type, id: issue.element.id, label: elementLabel(issue.element) };
+  if (issue.kind === 'move' && issue.moveTo !== undefined) {
+    // e.g. menu:url → website:menu: add the new key, remove the old one only if the new one is set
+    changes.set({ ...ref, key: issue.moveTo, newValue: value, movedFrom: issue.key });
+    changes.set({ ...ref, key: issue.key, oldValue: issue.value, movedTo: { key: issue.moveTo, value } });
+    goTo(current + 1);
+    return;
+  }
   changes.set({ ...ref, key: issue.key, oldValue: issue.value, newValue: value });
 
   const dateKey = checkDateKey(issue.key);
@@ -721,9 +741,14 @@ function onReviewKey(event: KeyboardEvent): void {
 // ---------------------------------------------------------------- step 3: upload
 
 function defaultComment(list: TagChange[]): string {
-  const labels = (keys: string[]) =>
-    CHECKS.filter((check) => keys.some((key) => coversKey(check, key))).map((check) => check.label);
-  const own = list.filter((c) => c.verifies === undefined && c.closed === undefined);
+  // the label of the check, or the key itself (e.g. lunch:menu:url)
+  const labels = (keys: string[]) => [
+    ...new Set(keys.map((key) => CHECKS.find((check) => coversKey(check, key))?.label ?? key)),
+  ];
+  const own = list.filter(
+    (c) => c.verifies === undefined && c.closed === undefined && c.movedTo === undefined && c.movedFrom === undefined,
+  );
+  const moved = [...new Set(list.flatMap((c) => (c.movedFrom === undefined ? [] : [`${c.movedFrom} → ${c.key}`])))];
   const corrected = labels(own.filter((c) => c.newValue !== undefined).map((c) => c.key));
   const removed = labels(own.filter((c) => c.newValue === undefined && c.duplicateOf === undefined).map((c) => c.key));
   const duplicates = labels(own.filter((c) => c.duplicateOf !== undefined).map((c) => c.key));
@@ -740,7 +765,10 @@ function defaultComment(list: TagChange[]): string {
     parts.push(`entfernt: ${removed.join(', ')}`);
   }
   if (duplicates.length > 0) {
-    parts.push(`doppelte Angaben entfernt (contact:* bleibt): ${duplicates.join(', ')}`);
+    parts.push(`doppelte Angaben entfernt: ${duplicates.join(', ')}`);
+  }
+  if (moved.length > 0) {
+    parts.push(`umbenannt: ${moved.join(', ')}`);
   }
   if (verified.length > 0) {
     parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
@@ -768,8 +796,14 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
     if (change.duplicateOf !== undefined) {
       item.append(` (steht in ${change.duplicateOf})`);
     }
+    if (change.movedTo !== undefined) {
+      item.append(` (nach ${change.movedTo.key} verschoben)`);
+    }
   } else if (change.oldValue === undefined) {
     item.append('neu ', code(change.newValue, 'new'));
+    if (change.movedFrom !== undefined) {
+      item.append(` (aus ${change.movedFrom})`);
+    }
   } else {
     item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
   }
@@ -781,7 +815,16 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
 
 /** Removes a change before the upload; a closure is only removed as a whole. */
 function discardChange(change: TagChange): void {
-  const group = change.closed === true ? changes.forElement(change).filter((c) => c.closed === true) : [change];
+  const partner =
+    change.movedTo !== undefined
+      ? changes.get(change, change.movedTo.key)
+      : change.movedFrom !== undefined
+        ? changes.get(change, change.movedFrom)
+        : undefined;
+  const group =
+    change.closed === true
+      ? changes.forElement(change).filter((c) => c.closed === true)
+      : [change, ...(partner === undefined ? [] : [partner])];
   for (const c of group) {
     changes.delete(c, c.key);
   }

@@ -44,6 +44,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
 | `closure.ts` | „Gibt es nicht mehr“: je Tag behalten/löschen/`disused:`/`was:`, Vorbelegung, einzelnen Tag löschen |
 | `duplicates.ts` | „Doppelte Angaben“: `website` und `contact:website` (usw.) mit gleichem Wert, Vorschlag: Tag ohne `contact:` löschen |
+| `synonyms.ts` | gleichbedeutende Keys mit URL (`menu:url` …) nach `website:menu` verschieben |
 | `notes.ts` | „Vor Ort prüfen“: OSM-Hinweis (Note) am Objekt erstellen, erstellte Hinweise je Element merken |
 | `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
@@ -156,7 +157,30 @@ Gewünscht von Andreas am 2026-11-01: Steht derselbe Wert unter `<key>` und
   `contact:website`.
 - `TagChange.duplicateOf` merkt sich den behaltenen Key: Liste vor dem
   Hochladen „… löschen (steht in contact:website)“, Kommentar „doppelte
-  Angaben entfernt (contact:* bleibt): Websites“.
+  Angaben entfernt: Websites“ (ohne passende Prüfung steht der Key selbst da).
+
+## Gleichbedeutende Keys (menu:url → website:menu)
+
+Gewünscht von Andreas am 2026-11-01, Liste aus
+[Key:website:menu](https://wiki.openstreetmap.org/wiki/Key:website:menu):
+`menu:url`, `url:menu`, `menu`, `lunch:menu:url`, `image:menu`,
+`image:menu:0`. Läuft mit der Prüfung „Websites“ (Overpass lädt die Keys
+dann mit), weitere Ziele lassen sich in `SYNONYMS` ergänzen.
+
+- Nur Werte, die mit `http://`, `https://` oder `www.` anfangen (`menu=yes`
+  und Commons-Dateinamen bleiben).
+- `website:menu` frei: Der erste dieser Keys wird verschoben. Übernehmen
+  setzt `website:menu` (Wert wie im Eingabefeld, mit URL-Prüfung) und löscht
+  den alten Key. Weitere Keys mit demselben Wert sind Doppelungen des ersten
+  (nicht von `website:menu`, damit der Wert nicht verloren geht, wenn man
+  das Verschieben überspringt).
+- `website:menu` belegt: gleicher Wert → Doppelung, alten Key löschen;
+  anderer Wert → nur Meldung, man entscheidet selbst.
+- `TagChange.movedFrom` (neuer Key) und `movedTo` (alter Key): Das Löschen
+  wird beim Hochladen nur angewendet, wenn der neue Key dann genau den Wert
+  hat; sonst Konflikt und der alte Key bleibt. In der Liste werden beide nur
+  zusammen entfernt, „Tag löschen“ macht das Verschieben rückgängig.
+  Kommentar: „umbenannt: menu:url → website:menu“.
 
 ## Vor Ort prüfen (OSM-Hinweise)
 

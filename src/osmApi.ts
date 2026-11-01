@@ -67,7 +67,9 @@ export function applyChanges(
 ): { modified: ApiElement[]; conflicts: Conflict[] } {
   const modified = new Map<string, ApiElement>();
   const conflicts: Conflict[] = [];
-  const ordered = [...changes.filter((c) => c.verifies === undefined), ...changes.filter((c) => c.verifies !== undefined)];
+  // changes that depend on another tag come last
+  const dependent = (c: TagChange) => c.verifies !== undefined || c.movedTo !== undefined;
+  const ordered = [...changes.filter((c) => !dependent(c)), ...changes.filter(dependent)];
   for (const change of ordered) {
     const key = elementKey(change);
     const element = modified.get(key) ?? current.get(key);
@@ -90,6 +92,10 @@ export function applyChanges(
     }
     if (change.verifies !== undefined && element.tags?.[change.verifies.key] !== change.verifies.value) {
       conflicts.push({ change, reason: `Der geprüfte Wert von ${change.verifies.key} wird nicht hochgeladen` });
+      continue;
+    }
+    if (change.movedTo !== undefined && element.tags?.[change.movedTo.key] !== change.movedTo.value) {
+      conflicts.push({ change, reason: `Der Wert steht nicht in ${change.movedTo.key}, der Tag bleibt` });
       continue;
     }
     const tags = { ...element.tags };
