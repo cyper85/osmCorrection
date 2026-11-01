@@ -319,3 +319,34 @@ code {
 .conflicts > li {
   color: var(--error);
 }
+
+#assist-settings input[type='password'],
+#assist-settings select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#issue-quote {
+  margin: 0.5em 0;
+  padding: 4px 12px;
+  border-left: 3px solid var(--accent);
+}
+
+#issue-quote p {
+  margin: 0 0 4px;
+  font-style: italic;
+}
+
+#issue-quote a {
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+#assist {
+  margin: 0.5em 0;
+}
+
+#assist-details {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+}

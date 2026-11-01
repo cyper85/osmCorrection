@@ -11,7 +11,9 @@
     "skipLibCheck": true,
     "noEmit": true,
     "paths": {
-      "osmvalidation": ["./libs/osmValidation/src/index.ts"]
+      "osmvalidation": ["./libs/osmValidation/src/index.ts"],
+      "osmassist": ["./libs/osmAssist/src/index.ts"],
+      "osmassist/claude": ["./libs/osmAssist/src/claude.ts"]
     }
   },
   "include": ["src", "test", "vite.config.ts"]

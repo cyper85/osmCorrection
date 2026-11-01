@@ -2,3 +2,7 @@
 	path = libs/osmValidation
 	url = https://github.com/cyper85/osmValidation.git
 	branch = master
+[submodule "libs/osmAssist"]
+	path = libs/osmAssist
+	url = https://github.com/cyper85/osmAssist.git
+	branch = master

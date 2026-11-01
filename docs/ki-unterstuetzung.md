@@ -1,6 +1,8 @@
 # Entwurf: KI-Unterstützung
 
-Stand 2026-11-01, mit Andreas abgestimmt. Noch nicht umgesetzt.
+Stand 2026-11-01, mit Andreas abgestimmt. Schritte 1 und 2 der Reihenfolge
+sind umgesetzt (osmAssist und die Einbindung), getestet mit aufgezeichneten
+Antworten; ein Test mit echtem API-Schlüssel steht noch aus.
 
 Ziel: Die Website eines Objekts mit einer KI auswerten und daraus Vorschläge
 für geänderte oder fehlende Tags ableiten (Öffnungszeiten, Kontaktdaten,

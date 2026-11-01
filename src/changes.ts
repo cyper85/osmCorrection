@@ -26,6 +26,8 @@ export interface TagChange {
   movedTo?: { key: string; value: string };
   /** added with the value of this key, which is removed */
   movedFrom?: string;
+  /** suggested by this AI model (e.g. "Anthropic Claude Sonnet 5.5"), for the changeset */
+  ai?: string;
   /** all tags of the node are removed: it is deleted if it is not part of a way or relation */
   deleteIfUnused?: true;
 }
@@ -48,6 +50,7 @@ function isTagChange(value: unknown): value is TagChange {
     (change.closed === undefined || change.closed === true) &&
     (change.duplicateOf === undefined || typeof change.duplicateOf === 'string') &&
     (change.movedFrom === undefined || typeof change.movedFrom === 'string') &&
+    (change.ai === undefined || typeof change.ai === 'string') &&
     (movedTo === undefined ||
       (typeof movedTo === 'object' && movedTo !== null && typeof movedTo.key === 'string' && typeof movedTo.value === 'string')) &&
     (change.deleteIfUnused === undefined || change.deleteIfUnused === true) &&

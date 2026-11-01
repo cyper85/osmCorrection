@@ -165,9 +165,13 @@ export interface Issue extends Evaluation {
   /**
    * 'confirm': the value is fine, the user is only asked to verify it online;
    * 'duplicate': the same value is in `duplicateOf`, the tag is to be removed;
-   * 'move': the value belongs in the key `moveTo` (e.g. menu:url → website:menu)
+   * 'move': the value belongs in the key `moveTo` (e.g. menu:url → website:menu);
+   * 'assist': the website can be analyzed by the AI (assist.ts);
+   * 'proposal', 'signal': a suggestion or a signal of the AI, with `assist`
    */
-  kind?: 'confirm' | 'duplicate' | 'move';
+  kind?: 'confirm' | 'duplicate' | 'move' | 'assist' | 'proposal' | 'signal';
+  /** where the AI found it, and which model */
+  assist?: { quote: string; sourceUrl: string; model: string };
   duplicateOf?: string;
   moveTo?: string;
 }

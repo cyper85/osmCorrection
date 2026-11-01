@@ -11,10 +11,13 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   resolve: {
-    alias: {
-      // osmValidation is a git submodule; use its TypeScript sources directly
-      osmvalidation: fileURLToPath(new URL('./libs/osmValidation/src/index.ts', import.meta.url)),
-    },
+    // osmValidation and osmAssist are git submodules; use their TypeScript sources directly
+    alias: [
+      { find: /^osmvalidation$/, replacement: fileURLToPath(new URL('./libs/osmValidation/src/index.ts', import.meta.url)) },
+      { find: /^osmassist$/, replacement: fileURLToPath(new URL('./libs/osmAssist/src/index.ts', import.meta.url)) },
+      // the Claude client with the SDK, loaded only when the AI is used
+      { find: /^osmassist\/claude$/, replacement: fileURLToPath(new URL('./libs/osmAssist/src/claude.ts', import.meta.url)) },
+    ],
   },
   server: {
     // OSM only accepts http redirect URIs for 127.0.0.1

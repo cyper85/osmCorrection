@@ -13,6 +13,24 @@ import {
   updateDeletion,
   type TagAction,
 } from './closure.js';
+import type { AssistResult } from 'osmassist';
+import {
+  alreadyRead,
+  analyze,
+  apiKey,
+  ASSIST_ONLINE,
+  assistIssues,
+  costRange,
+  dollars,
+  errorText,
+  fetchError,
+  keyRemembered,
+  MODELS,
+  REJECTED,
+  saveApiKey,
+  saveModel,
+  selectedModel,
+} from './assist.js';
 import { DUPLICATES, duplicateIssues } from './duplicates.js';
 import { SYNONYM_KEYS, synonymIssues } from './synonyms.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
@@ -189,7 +207,13 @@ function renderChecks(): void {
       `Zeigt auch gültige Websites und Profile in sozialen Netzen, die seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft ` +
         'wurden. Du öffnest sie selbst und bestätigst sie, dann wird check_date:<Tag> gesetzt.',
     ),
+    checkbox(ASSIST_ONLINE.id, ASSIST_ONLINE.label, selected.has(ASSIST_ONLINE.id)),
+    hint(
+      'Eine KI (Claude) liest auf Knopfdruck die Website eines Objekts und schlägt geänderte oder fehlende ' +
+        'Öffnungszeiten, Kontaktdaten und Profile vor, jeweils mit Zitat. Braucht einen eigenen API-Schlüssel.',
+    ),
   );
+  setupAssistSettings();
   for (const id of ['checks', 'online-checks']) {
     $(id).addEventListener('change', (event) => {
       const target = event.target;
@@ -199,6 +223,7 @@ function renderChecks(): void {
         }
       }
       updateSocialGroup();
+      updateAssistSettings();
       try {
         localStorage.setItem(CHECK_STORAGE_KEY, JSON.stringify(selectedIds()));
       } catch {
@@ -207,6 +232,30 @@ function renderChecks(): void {
       updateDownloadButton();
     });
   }
+}
+
+/** Key and model for the AI assistance, shown while „Mit KI abgleichen“ is chosen. */
+function setupAssistSettings(): void {
+  const key = $<HTMLInputElement>('ai-key');
+  const remember = $<HTMLInputElement>('ai-remember');
+  const model = $<HTMLSelectElement>('ai-model');
+  model.replaceChildren(...MODELS.map(({ id, label }) => new Option(label, id, false, id === selectedModel())));
+  key.value = apiKey();
+  remember.checked = keyRemembered();
+  const save = () => saveApiKey(key.value.trim(), remember.checked);
+  key.addEventListener('change', save);
+  remember.addEventListener('change', save);
+  model.addEventListener('change', () => {
+    saveModel(model.value);
+    updateAssistSettings();
+  });
+  updateAssistSettings();
+}
+
+function updateAssistSettings(): void {
+  $('assist-settings').hidden = !onlineSelected(ASSIST_ONLINE.id);
+  const cost = costRange(selectedModel());
+  $('ai-cost').textContent = cost === '' ? '' : `Eine Auswertung kostet ${cost} (je nach Umfang der Website).`;
 }
 
 function selectedIds(): string[] {
@@ -252,6 +301,7 @@ async function startDownload(): Promise<void> {
   const wikidataOnline = onlineSelected(WIKIDATA_ONLINE.id);
   const websiteOnline = onlineSelected(WEBSITE_ONLINE.id);
   const confirmOnline = onlineSelected(CONFIRM_ONLINE.id);
+  const aiAssist = onlineSelected(ASSIST_ONLINE.id);
   const duplicates = onlineSelected(DUPLICATES.id);
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
@@ -271,6 +321,9 @@ async function startDownload(): Promise<void> {
     }
     if (duplicates) {
       keyPatterns.push(DUPLICATES.keyPattern);
+    }
+    if (aiAssist) {
+      keyPatterns.push(ASSIST_ONLINE.keyPattern);
     }
     const synonyms = checks.some((check) => check.id === 'url');
     if (synonyms) {
@@ -317,6 +370,9 @@ async function startDownload(): Promise<void> {
     if (confirmOnline) {
       found = found.concat(confirmIssues(downloaded, found));
     }
+    if (aiAssist) {
+      found = found.concat(assistIssues(downloaded));
+    }
 
     // issues of one element one after the other, in download order
     const order = new Map(downloaded.map((el, index) => [el, index]));
@@ -327,6 +383,7 @@ async function startDownload(): Promise<void> {
 
     current = 0;
     visited = new Set();
+    assistRuns.clear();
     hint.textContent = '';
     mapView.showIssues(issues, goTo);
     showStep('review');
@@ -408,8 +465,10 @@ function showIssue(): void {
   link.href = osmUrl(issue.element);
   link.textContent = elementLabel(issue.element);
   $('issue-key').textContent = issue.key;
-  $('issue-value').textContent = issue.value;
+  $('issue-value').textContent = issue.value === '' ? '(fehlt)' : issue.value;
   $('issue-message').textContent = issue.message;
+  showQuote(issue);
+  showAssist(issue);
   hidePanels();
   showNoteLink(issue.element);
 
@@ -475,7 +534,13 @@ let openedValue: string | undefined;
  */
 function updateVerify(issue: Issue, value: string): void {
   // nothing to open while a duplicate is to be removed
-  const verifiable = isVerifiable(issue.key) && !(issue.kind === 'duplicate' && value.trim() === '');
+  const verifiable =
+    isVerifiable(issue.key) &&
+    !(issue.kind === 'duplicate' && value.trim() === '') &&
+    // AI suggestions get a check_date anyway, the other AI findings are about the element
+    issue.kind !== 'proposal' &&
+    issue.kind !== 'signal' &&
+    issue.kind !== 'assist';
   const target = verifiable ? openableUrl(issue.key, value.trim()) : undefined;
   const open = $<HTMLAnchorElement>('issue-open');
   $('issue-open-row').hidden = target === undefined;
@@ -510,6 +575,19 @@ function accept(verified: boolean): void {
     return;
   }
   const ref = { type: issue.element.type, id: issue.element.id, label: elementLabel(issue.element) };
+  if (issue.kind === 'proposal' && issue.assist !== undefined) {
+    // the tag, and where it is from: source:<key>=website, check_date:<key>=today (only if the tag is set)
+    const ai = issue.assist.model;
+    changes.set({ ...ref, key: issue.key, oldValue: issue.element.tags[issue.key], newValue: value, ai });
+    for (const [key, newValue] of [
+      [`source:${issue.key}`, 'website'],
+      [checkDateKey(issue.key), today()],
+    ] as const) {
+      changes.set({ ...ref, key, oldValue: issue.element.tags[key], newValue, verifies: { key: issue.key, value }, ai });
+    }
+    goTo(current + 1);
+    return;
+  }
   if (issue.kind === 'move' && issue.moveTo !== undefined) {
     // e.g. menu:url → website:menu: add the new key, remove the old one only if the new one is set
     changes.set({ ...ref, key: issue.moveTo, newValue: value, movedFrom: issue.key });
@@ -534,6 +612,113 @@ function accept(verified: boolean): void {
   }
   updateDeletion(changes, issue.element);
   goTo(current + 1);
+}
+
+// ---------------------------------------------------------------- AI assistance
+
+/** Results of the AI per element, so its finding shows them again. */
+const assistRuns = new Map<string, { result: AssistResult; reused: boolean }>();
+let assistAbort: AbortController | undefined;
+
+function showQuote(issue: Issue): void {
+  $('issue-quote').hidden = issue.assist === undefined;
+  if (issue.assist !== undefined) {
+    $('issue-quote-text').textContent = `„${issue.assist.quote}“`;
+    const link = $<HTMLAnchorElement>('issue-quote-link');
+    link.href = issue.assist.sourceUrl;
+    link.textContent = `Quelle: ${issue.assist.sourceUrl} (ausgewertet von ${issue.assist.model})`;
+  }
+}
+
+function showAssist(issue: Issue): void {
+  $('assist').hidden = issue.kind !== 'assist';
+  if (issue.kind !== 'assist' || assistAbort !== undefined) {
+    return;
+  }
+  const run = $<HTMLButtonElement>('assist-run');
+  const done = assistRuns.get(elementKey(issue.element));
+  run.textContent = done === undefined ? 'Website mit KI auswerten' : 'Erneut auswerten';
+  $('assist-cancel').hidden = true;
+  if (done !== undefined) {
+    run.disabled = apiKey() === '';
+    showAssistResult(done.result, done.reused);
+    return;
+  }
+  $('assist-details').replaceChildren();
+  // a website read before costs nothing, also without a key
+  const cached = alreadyRead(issue.element);
+  run.disabled = apiKey() === '' && !cached;
+  $('assist-status').textContent = cached
+    ? 'Diese Website wurde schon ausgewertet (gleiche Adresse), das Ergebnis wird ohne weitere Kosten übernommen.'
+    : apiKey() === ''
+      ? 'Bitte unter „Neuer Ausschnitt“ bei der KI-Unterstützung einen API-Schlüssel eintragen.'
+      : `Kostet ${costRange(selectedModel())} (${MODELS.find((m) => m.id === selectedModel())?.label ?? ''}).`;
+}
+
+function showAssistResult(result: AssistResult, reused: boolean): void {
+  const { proposals, signals, rejected, pages, usage, model } = result;
+  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  $('assist-status').textContent =
+    `${count(proposals.length, 'Vorschlag', 'Vorschläge')}, ${count(signals.length, 'Hinweis', 'Hinweise')}` +
+    (proposals.length + signals.length > 0 ? ', sie folgen als nächste Funde (Enter oder Bild ↓). ' : '. ') +
+    (reused
+      ? `${model.name}, aus einer früheren Auswertung dieser Website, keine weiteren Kosten.`
+      : `${model.name}, ${usage.inputTokens + usage.outputTokens} Token` +
+        (usage.costUsd === undefined ? '.' : `, ca. ${dollars(usage.costUsd)}.`));
+  const item = (text: string) => Object.assign(document.createElement('li'), { textContent: text });
+  const unchanged = rejected.filter((r) => r.reason === 'unchanged').length;
+  $('assist-details').replaceChildren(
+    ...pages.map((page) => item(`${page.url}: ${page.error === undefined ? 'gelesen' : fetchError(page.error)}`)),
+    ...rejected
+      .filter((r) => r.reason !== 'unchanged')
+      .map((r) => item(`verworfen: ${r.proposal.key}=${r.proposal.value} (${REJECTED[r.reason]})`)),
+    ...(unchanged > 0 ? [item(`${count(unchanged, 'Angabe stimmt', 'Angaben stimmen')} mit OSM überein`)] : []),
+  );
+}
+
+/** Puts the findings of the AI right after the finding at `index`, replacing those of an earlier run. */
+function insertAssistIssues(index: number, element: OsmElement, found: Issue[]): void {
+  const entries = issues
+    .map((issue, i) => ({ issue, seen: visited.has(i) }))
+    .filter(({ issue }, i) => i <= index || issue.element !== element || (issue.kind !== 'proposal' && issue.kind !== 'signal'));
+  entries.splice(index + 1, 0, ...found.map((issue) => ({ issue, seen: false })));
+  issues = entries.map(({ issue }) => issue);
+  visited = new Set(entries.flatMap(({ seen }, i) => (seen ? [i] : [])));
+  mapView.showIssues(issues, goTo);
+}
+
+async function runAssist(): Promise<void> {
+  const issue = issues[current];
+  if (issue?.kind !== 'assist' || assistAbort !== undefined) {
+    return;
+  }
+  const index = current;
+  const controller = new AbortController();
+  assistAbort = controller;
+  $<HTMLButtonElement>('assist-run').disabled = true;
+  $('assist-cancel').hidden = false;
+  $('assist-details').replaceChildren();
+  $('assist-status').textContent = 'Die KI liest die Website … (das dauert meist 20 bis 60 Sekunden)';
+  try {
+    // „Erneut auswerten“ reads the website again
+    const fresh = assistRuns.has(elementKey(issue.element));
+    const { result, issues: found, reused } = await analyze(issue.element, elementCountry(issue.element, fallbackCountry), {
+      signal: controller.signal,
+      today: today(),
+      fresh,
+    });
+    assistRuns.set(elementKey(issue.element), { result, reused });
+    insertAssistIssues(index, issue.element, found);
+  } catch (error) {
+    $('assist-status').textContent = errorText(error);
+  } finally {
+    assistAbort = undefined;
+    $('assist-cancel').hidden = true;
+    $<HTMLButtonElement>('assist-run').disabled = apiKey() === '' && !alreadyRead(issue.element);
+  }
+  if (current === index && assistRuns.has(elementKey(issue.element))) {
+    showIssue();
+  }
 }
 
 // ---------------------------------------------------------------- no longer existing
@@ -740,19 +925,30 @@ function onReviewKey(event: KeyboardEvent): void {
 
 // ---------------------------------------------------------------- step 3: upload
 
+/** The AI models whose suggestions are in the changes. */
+function aiModels(list: TagChange[]): string[] {
+  return [...new Set(list.flatMap((c) => (c.ai === undefined ? [] : [c.ai])))];
+}
+
 function defaultComment(list: TagChange[]): string {
   // the label of the check, or the key itself (e.g. lunch:menu:url)
   const labels = (keys: string[]) => [
     ...new Set(keys.map((key) => CHECKS.find((check) => coversKey(check, key))?.label ?? key)),
   ];
   const own = list.filter(
-    (c) => c.verifies === undefined && c.closed === undefined && c.movedTo === undefined && c.movedFrom === undefined,
+    (c) =>
+      c.verifies === undefined &&
+      c.closed === undefined &&
+      c.movedTo === undefined &&
+      c.movedFrom === undefined &&
+      c.ai === undefined,
   );
+  const fromWebsite = labels(list.filter((c) => c.ai !== undefined && c.verifies === undefined).map((c) => c.key));
   const moved = [...new Set(list.flatMap((c) => (c.movedFrom === undefined ? [] : [`${c.movedFrom} → ${c.key}`])))];
   const corrected = labels(own.filter((c) => c.newValue !== undefined).map((c) => c.key));
   const removed = labels(own.filter((c) => c.newValue === undefined && c.duplicateOf === undefined).map((c) => c.key));
   const duplicates = labels(own.filter((c) => c.duplicateOf !== undefined).map((c) => c.key));
-  const verified = labels(list.flatMap((c) => (c.verifies === undefined ? [] : [c.verifies.key])));
+  const verified = labels(list.flatMap((c) => (c.verifies === undefined || c.ai !== undefined ? [] : [c.verifies.key])));
   const closed = new Set(list.filter((c) => c.closed === true).map((c) => elementKey(c))).size;
   const parts: string[] = [];
   if (closed > 0) {
@@ -769,6 +965,9 @@ function defaultComment(list: TagChange[]): string {
   }
   if (moved.length > 0) {
     parts.push(`umbenannt: ${moved.join(', ')}`);
+  }
+  if (fromWebsite.length > 0) {
+    parts.push(`von der Website übernommen, ausgewertet mit KI-Unterstützung (${aiModels(list).join(', ')}): ${fromWebsite.join(', ')}`);
   }
   if (verified.length > 0) {
     parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
@@ -806,6 +1005,9 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
     }
   } else {
     item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
+  }
+  if (change.ai !== undefined && change.verifies === undefined) {
+    item.append(` (Vorschlag von ${change.ai})`);
   }
   for (const node of extra) {
     item.append(document.createElement('br'), node);
@@ -913,7 +1115,15 @@ async function startUpload(): Promise<void> {
     }
     const { modify, remove } = await splitDeletions(modified);
     status.textContent = `Lade ${modified.length} Elemente hoch …`;
-    const changesetId = await upload(auth, modify, { created_by: GENERATOR, comment }, GENERATOR, remove);
+    // source and ai_assisted only if AI suggestions are actually uploaded
+    const applied = list.filter((change) => !conflicts.some((conflict) => conflict.change === change));
+    const models = aiModels(applied);
+    const changesetTags = {
+      created_by: GENERATOR,
+      comment,
+      ...(models.length > 0 ? { source: 'website', ai_assisted: models.join(';') } : {}),
+    };
+    const changesetId = await upload(auth, modify, changesetTags, GENERATOR, remove);
     changes.clear();
     renderDiff();
     status.replaceChildren(
@@ -995,6 +1205,8 @@ $('remove-tag').addEventListener('click', () => {
   }
 });
 $('close-open').addEventListener('click', openClosure);
+$('assist-run').addEventListener('click', () => void runAssist());
+$('assist-cancel').addEventListener('click', () => assistAbort?.abort());
 $('closure').addEventListener('submit', (event) => {
   event.preventDefault();
   confirmClosure();

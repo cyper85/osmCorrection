@@ -59,6 +59,22 @@
         <fieldset id="online-checks">
           <legend>Online-Prüfungen</legend>
         </fieldset>
+        <fieldset id="assist-settings" hidden>
+          <legend>KI-Unterstützung</legend>
+          <label for="ai-key">API-Schlüssel von Anthropic</label>
+          <input type="password" id="ai-key" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" />
+          <label><input type="checkbox" id="ai-remember" /> Schlüssel in diesem Browser merken</label>
+          <label for="ai-model">Modell</label>
+          <select id="ai-model"></select>
+          <p id="ai-cost" class="hint"></p>
+          <p class="hint">
+            Den Schlüssel erstellst du in der
+            <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">Claude Console</a>,
+            am besten einen eigenen nur für osmCorrection mit kurzer Laufzeit (1 bis 7 Tage). Er bleibt in deinem Browser
+            und geht nur an api.anthropic.com. Die Kosten trägst du selbst. Ausgewertet wird nur auf Knopfdruck, pro Objekt,
+            und jeder Vorschlag muss einzeln übernommen werden.
+          </p>
+        </fieldset>
         <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
         <p id="download-hint" class="hint"></p>
       </section>
@@ -78,6 +94,18 @@
             <dt>Befund</dt>
             <dd id="issue-message" class="message"></dd>
           </dl>
+          <blockquote id="issue-quote" hidden>
+            <p id="issue-quote-text"></p>
+            <a id="issue-quote-link" target="_blank" rel="noopener noreferrer"></a>
+          </blockquote>
+          <div id="assist" class="notice" hidden>
+            <div class="row">
+              <button type="button" id="assist-run" class="primary">Website mit KI auswerten</button>
+              <button type="button" id="assist-cancel" hidden>Abbrechen</button>
+            </div>
+            <p id="assist-status" class="hint"></p>
+            <ul id="assist-details" class="hint"></ul>
+          </div>
           <form id="issue-form">
             <label for="issue-input">Neuer Wert</label>
             <input id="issue-input" autocomplete="off" spellcheck="false" />

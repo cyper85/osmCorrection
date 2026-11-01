@@ -45,6 +45,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `closure.ts` | „Gibt es nicht mehr“: je Tag behalten/löschen/`disused:`/`was:`, Vorbelegung, einzelnen Tag löschen |
 | `duplicates.ts` | „Doppelte Angaben“: `website` und `contact:website` (usw.) mit gleichem Wert, Vorschlag: Tag ohne `contact:` löschen |
 | `synonyms.ts` | gleichbedeutende Keys mit URL (`menu:url` …) nach `website:menu` verschieben |
+| `assist.ts` | KI-Unterstützung: Einstellungen (Schlüssel, Modell), Funde „Mit KI abgleichen“, Vorschläge und Hinweise aus osmAssist |
 | `notes.ts` | „Vor Ort prüfen“: OSM-Hinweis (Note) am Objekt erstellen, erstellte Hinweise je Element merken |
 | `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
@@ -182,6 +183,46 @@ dann mit), weitere Ziele lassen sich in `SYNONYMS` ergänzen.
   zusammen entfernt, „Tag löschen“ macht das Verschieben rückgängig.
   Kommentar: „umbenannt: menu:url → website:menu“.
 
+## KI-Unterstützung
+
+Entwurf und Entscheidungen: [docs/ki-unterstuetzung.md](docs/ki-unterstuetzung.md).
+Umgesetzt am 2026-11-01:
+
+- Bibliothek [osmAssist](https://github.com/cyper85/osmAssist) als Submodul
+  `libs/osmAssist` (öffentlich, MIT). Der Claude-Adapter liegt im eigenen
+  Einstieg `osmassist/claude`; osmCorrection lädt ihn, das SDK und den
+  `opening_hours`-Parser erst beim ersten Auswerten nach (Haupt-Bundle
+  bleibt bei ca. 365 KB).
+- Online-Prüfung „Mit KI abgleichen“ (`ai-assist`): ein Fund je Objekt mit
+  Website, dessen `check_date:opening_hours` fehlt oder alt ist. Darin
+  „Website mit KI auswerten“ (kostet Geld, nur auf Klick, abbrechbar).
+- Einstellungen in Schritt 1, sichtbar mit der Prüfung: API-Schlüssel
+  (`sessionStorage`, mit „merken“ `localStorage`), Modell (Standard Claude
+  Sonnet 5.5), Kostenspanne.
+- Zwischenspeicher (gewünscht 2026-11-01): Claude meldet alle Angaben der
+  Website, unabhängig von den Tags (`SiteReading`); der Abgleich mit den
+  Tags (`assess`) läuft je Objekt lokal und kostet nichts. Was gelesen
+  wurde, bleibt für die Sitzung und gilt für jedes Objekt mit derselben
+  Website **und derselben Adresse** (`addr:street`, `housenumber`,
+  `postcode`, `city`, `place`), z. B. Gebäude und Laden oder ein zweiter
+  Besuch. Die Adresse gehört zum Schlüssel, weil eine Seite mehrere
+  Filialen listen kann. „Erneut auswerten“ liest die Website neu.
+  Fehlgeschlagene oder abgebrochene Lesevorgänge werden nicht gespeichert.
+- Ergebnis: Hinweise und Vorschläge werden als Funde direkt hinter dem
+  Objekt eingefügt (ein erneuter Lauf ersetzt sie), mit Zitat und Quelle.
+  Gelesene Seiten, Abruffehler und verworfene Vorschläge stehen beim Fund.
+  Vorschläge werden mit der Formatprüfung von osmCorrection bzw. dem
+  `opening_hours`-Parser geprüft und in die bevorzugte Form gebracht.
+- Übernehmen setzt den Tag, `source:<key>=website` und
+  `check_date:<key>=<heute>` (die beiden nur, wenn der Tag hochgeladen
+  wird, über `verifies`). `TagChange.ai` hält das Modell fest.
+- Changeset: Kommentar „von der Website übernommen, ausgewertet mit
+  KI-Unterstützung (Anthropic Claude Sonnet 5.5): …“, Tags `source=website`
+  und `ai_assisted=Anthropic Claude Sonnet 5.5` nur, wenn KI-Vorschläge
+  wirklich hochgeladen werden (nicht bei Konflikten).
+- `npm run smoke:assist`: Browser-Test mit nachgebauter Overpass- und
+  Anthropic-Antwort (kostenlos, ohne Schlüssel).
+
 ## Vor Ort prüfen (OSM-Hinweise)
 
 Entschieden mit Andreas am 2026-10-31: Ist unklar, ob es ein Objekt noch
@@ -289,9 +330,9 @@ Anfragen an fremde Websites gehen nur im Modus `no-cors`:
 
 ## Offene Punkte
 
-0. KI-Unterstützung: Entwurf in [docs/ki-unterstuetzung.md](docs/ki-unterstuetzung.md)
-   (2026-11-01 abgestimmt, noch nicht umgesetzt; Bibliothek `osmAssist` als
-   eigenes Repo).
+0. KI-Unterstützung: noch nicht mit einem echten API-Schlüssel getestet
+   (Antwortformat von `web_fetch`, ob Links im Seitentext erhalten bleiben,
+   tatsächliche Kosten). Danach `ai_assisted` im OSM-Forum vorstellen.
 
 1. Viele Funde bei „Websites online prüfen“ sind http → https (in Ilmenau
    etwa 180 von 390 Websites). Eventuell einen Filter oder eine Sortierung

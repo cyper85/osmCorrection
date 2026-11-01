@@ -39,6 +39,14 @@ unter „Gibt es nicht mehr …“ für jeden Tag: behalten, löschen, `disused:
 gelöscht, wenn er zu keinem Weg und keiner Relation gehört. Ist man unsicher,
 erstellt „Vor Ort prüfen …“ einen OSM-Hinweis (Note) am Objekt.
 
+Mit „Mit KI abgleichen“ liest auf Knopfdruck eine KI (Claude) die Website
+eines Objekts und schlägt geänderte oder fehlende Öffnungszeiten,
+Kontaktdaten und Profile vor, jeweils mit wörtlichem Zitat und Quelle; jeder
+Vorschlag wird einzeln übernommen. Dafür braucht es einen eigenen
+API-Schlüssel von Anthropic, die Kosten trägt der Nutzer. Die Auswertung
+steckt in der Bibliothek [osmAssist](https://github.com/cyper85/osmAssist)
+(Submodul `libs/osmAssist`). Entwurf: [docs/ki-unterstuetzung.md](docs/ki-unterstuetzung.md).
+
 Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 übersprungen); ein Klick springt zum Fund. Tastenkürzel: <kbd>Enter</kbd>
 übernehmen, <kbd>Bild ↓</kbd> überspringen, <kbd>Bild ↑</kbd> zurück,
@@ -58,6 +66,7 @@ npm run dev        # http://127.0.0.1:5173/
 npm test           # vitest
 npm run build      # Typprüfung + Build nach dist/
 npm run smoke      # Browser-Test mit Edge gegen `npx vite preview --port 4173`
+npm run smoke:assist  # KI-Ablauf im Browser, mit nachgebauten Antworten
 ```
 
 Aktueller Stand, Entscheidungen und offene Punkte stehen in
