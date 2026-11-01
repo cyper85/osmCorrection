@@ -1,5 +1,5 @@
 import { url as validateUrl } from 'osmvalidation';
-import { CHECKS, type Check, type Issue } from './checks.js';
+import { CHECKS, coversKey, WEBSITE_KEYS, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
 import { isRecentlyChecked } from './verification.js';
 
@@ -14,7 +14,6 @@ import { isRecentlyChecked } from './verification.js';
 
 const TIMEOUT_MS = 15_000;
 const CONCURRENCY = 8;
-const WEBSITE_KEY = /^(contact:)?website$|^url$/;
 
 /** Hosts that reject every request from other pages, also for existing pages. */
 const UNCHECKABLE_HOSTS = /(^|\.)(x\.com|twitter\.com|youtube\.com|youtu\.be)$/i;
@@ -22,7 +21,7 @@ const UNCHECKABLE_HOSTS = /(^|\.)(x\.com|twitter\.com|youtube\.com|youtu\.be)$/i
 export const WEBSITE_ONLINE = {
   id: 'website-online',
   label: 'Websites online prüfen',
-  keyPattern: WEBSITE_KEY.source,
+  keyPattern: WEBSITE_KEYS,
 } as const;
 
 export type ProbeResult = 'reachable' | 'unreachable' | 'timeout';
@@ -64,7 +63,7 @@ export function probeUrl(value: string): string | undefined {
 
 /** Website tags to check: not confirmed with a recent check_date. */
 function needsCheck(element: OsmElement, key: string, now: Date): boolean {
-  return WEBSITE_KEY.test(key) && !isRecentlyChecked(element, key, now);
+  return coversKey(urlCheck(), key) && !isRecentlyChecked(element, key, now);
 }
 
 export function websitesToProbe(elements: OsmElement[], now = new Date()): string[] {

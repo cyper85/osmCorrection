@@ -28,7 +28,7 @@ describe('websitesToProbe', () => {
       node(1, { website: 'https://a.de/', 'contact:website': 'http://b.de/' }),
       node(2, { url: 'https://a.de/', 'website:menu': 'https://c.de/', name: 'https://d.de/' }),
     ]);
-    expect(urls).toEqual(['https://a.de/', 'https://b.de/']);
+    expect(urls).toEqual(['https://a.de/', 'https://b.de/', 'https://c.de/']);
   });
 });
 

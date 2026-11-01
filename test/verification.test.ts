@@ -20,10 +20,10 @@ function node(id: number, tags: Record<string, string>): OsmElement {
 
 describe('keys', () => {
   it('knows which keys can be verified online', () => {
-    for (const key of ['website', 'contact:website', 'url', 'contact:facebook', 'facebook', 'contact:twitter', 'contact:x']) {
+    for (const key of ['website', 'contact:website', 'url', 'contact:facebook', 'facebook', 'contact:twitter', 'contact:x', 'website:menu', 'reservation:website']) {
       expect(isVerifiable(key)).toBe(true);
     }
-    for (const key of ['phone', 'email', 'wikidata', 'website:menu']) {
+    for (const key of ['phone', 'email', 'wikidata', 'website:1', 'website:note']) {
       expect(isVerifiable(key)).toBe(false);
     }
   });

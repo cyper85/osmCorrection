@@ -109,13 +109,13 @@ function dropConfirmations(store: ChangeStore, element: OsmElement, key: string)
   }
 }
 
-/** Removes a single tag. */
-export function removeTag(store: ChangeStore, element: OsmElement, key: string): void {
+/** Removes a single tag; `duplicateOf` if the same value is in that key. */
+export function removeTag(store: ChangeStore, element: OsmElement, key: string, duplicateOf?: string): void {
   const value = element.tags[key];
   if (value === undefined) {
     return;
   }
-  store.set({ ...ref(element), key, oldValue: value });
+  store.set({ ...ref(element), key, oldValue: value, ...(duplicateOf === undefined ? {} : { duplicateOf }) });
   dropConfirmations(store, element, key);
   updateDeletion(store, element);
 }

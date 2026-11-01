@@ -46,11 +46,26 @@ export interface Check {
   keyPattern: string;
   /** Values may contain several parts separated by `;`. */
   multiValue: boolean;
+  /** keys matching `keyPattern` that are not covered (only in JavaScript, Overpass loads them anyway) */
+  excludeKeys?: string;
   validate(value: string, context: CheckContext): ValidationResult;
   /** shown and switched together under „Soziale Netze“ */
   group?: 'social';
   /** the value is a page or profile the user can open and confirm (check_date) */
   verifiable?: true;
+}
+
+/**
+ * Keys with a website: the main website and the pages for booking, the menu,
+ * opening hours … (https://wiki.openstreetmap.org/wiki/Key:website:menu etc.)
+ */
+export const WEBSITE_KEYS = '^(contact:)?website$|^url$|^reservation:website$|^opening_hours:url$|^website:.+$';
+/** `website:note` is a text; `website:1` is left out on purpose (decided with Andreas). */
+const NOT_WEBSITE_KEYS = '^website:(1|note)$';
+
+/** Whether the check covers the key. */
+export function coversKey(check: Check, key: string): boolean {
+  return new RegExp(check.keyPattern).test(key) && (check.excludeKeys === undefined || !new RegExp(check.excludeKeys).test(key));
 }
 
 const withCountry = (country: CountryCode | undefined) => (country === undefined ? {} : { country });
@@ -91,7 +106,8 @@ export const CHECKS: Check[] = [
   {
     id: 'url',
     label: 'Websites',
-    keyPattern: '^(contact:)?website$|^url$',
+    keyPattern: WEBSITE_KEYS,
+    excludeKeys: NOT_WEBSITE_KEYS,
     multiValue: false,
     validate: (value) => url(value),
     verifiable: true,
@@ -146,8 +162,12 @@ export interface Issue extends Evaluation {
   key: string;
   value: string;
   check: Check;
-  /** 'confirm': the value is fine, the user is only asked to verify it online */
-  kind?: 'confirm';
+  /**
+   * 'confirm': the value is fine, the user is only asked to verify it online;
+   * 'duplicate': the same value is in `duplicateOf`, the tag is to be removed
+   */
+  kind?: 'confirm' | 'duplicate';
+  duplicateOf?: string;
 }
 
 export function evaluate(check: Check, value: string, context: CheckContext): Evaluation {
@@ -191,19 +211,18 @@ export function elementCountry(element: OsmElement, fallback?: CountryCode): Cou
  * there is a preferred form of it.
  */
 export function findIssues(elements: OsmElement[], checks: Check[], fallbackCountry?: CountryCode): Issue[] {
-  const compiled = checks.map((check) => ({ check, keys: new RegExp(check.keyPattern) }));
   const issues: Issue[] = [];
   for (const element of elements) {
     const country = elementCountry(element, fallbackCountry);
     const context: CheckContext = country === undefined ? {} : { country };
     for (const [key, value] of Object.entries(element.tags)) {
-      const match = compiled.find(({ keys }) => keys.test(key));
-      if (match === undefined) {
+      const check = checks.find((c) => coversKey(c, key));
+      if (check === undefined) {
         continue;
       }
-      const result = evaluate(match.check, value, context);
+      const result = evaluate(check, value, context);
       if (!result.valid || (result.suggestion !== undefined && result.suggestion !== value)) {
-        issues.push({ ...result, element, key, value, check: match.check });
+        issues.push({ ...result, element, key, value, check });
       }
     }
   }

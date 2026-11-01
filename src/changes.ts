@@ -17,6 +17,8 @@ export interface TagChange {
   verifies?: { key: string; value: string };
   /** part of marking the element as no longer existing (see closure.ts) */
   closed?: true;
+  /** removed because the same value is in this key, e.g. contact:website */
+  duplicateOf?: string;
   /** all tags of the node are removed: it is deleted if it is not part of a way or relation */
   deleteIfUnused?: true;
 }
@@ -36,6 +38,7 @@ function isTagChange(value: unknown): value is TagChange {
     (change.oldValue !== undefined || change.newValue !== undefined) &&
     (change.label === undefined || typeof change.label === 'string') &&
     (change.closed === undefined || change.closed === true) &&
+    (change.duplicateOf === undefined || typeof change.duplicateOf === 'string') &&
     (change.deleteIfUnused === undefined || change.deleteIfUnused === true) &&
     (verifies === undefined ||
       (typeof verifies === 'object' && verifies !== null && typeof verifies.key === 'string' && typeof verifies.value === 'string'))

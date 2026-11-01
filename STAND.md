@@ -43,6 +43,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
 | `closure.ts` | „Gibt es nicht mehr“: je Tag behalten/löschen/`disused:`/`was:`, Vorbelegung, einzelnen Tag löschen |
+| `duplicates.ts` | „Doppelte Angaben“: `website` und `contact:website` (usw.) mit gleichem Wert, Vorschlag: Tag ohne `contact:` löschen |
 | `notes.ts` | „Vor Ort prüfen“: OSM-Hinweis (Note) am Objekt erstellen, erstellte Hinweise je Element merken |
 | `changes.ts` | `ChangeStore`, eine Änderung je Element und Key (auch neue und gelöschte Tags), im `localStorage` gespeichert |
 | `osmApi.ts` | aktuelle Versionen holen, `applyChanges` (Konflikte), leere Punkte löschen, osmChange-XML, Upload |
@@ -122,6 +123,40 @@ Entschieden mit Andreas am 2026-10-31:
   entfernen. `TagChange.closed` markiert ihre Änderungen, `deleteIfUnused`
   dient der Anzeige.
 - Changeset-Kommentar: „existiert nicht mehr: 1 Objekt; …; entfernt: Website“.
+
+## Website-Keys
+
+Ergänzt am 2026-11-01 mit Andreas: „Websites“, „Websites online prüfen“ und
+das Bestätigen gelten für `website`, `contact:website`, `url`,
+`reservation:website`, `opening_hours:url` und alle `website:*`
+(`WEBSITE_KEYS` in `checks.ts`), außer `website:1` (so gewünscht) und
+`website:note` (laut taginfo Text wie „kein https“, keine URL).
+Ausnahmen stehen in `Check.excludeKeys`, weil das POSIX-ERE von Overpass
+keine negativen Lookaheads kann; Overpass lädt sie mit, `coversKey()` filtert
+sie in JavaScript. Bestätigt wird mit `check_date:website:menu` usw.
+
+## Doppelte Angaben
+
+Gewünscht von Andreas am 2026-11-01: Steht derselbe Wert unter `<key>` und
+`contact:<key>`, wird der Tag ohne `contact:` gelöscht, `contact:*` bleibt.
+
+- Eigene Prüfung „Doppelte Angaben“ (`duplicates`) in der Auswahl. Gilt für
+  alle Keys, die es mit und ohne `contact:` gibt (eine Prüfung aus
+  `checks.ts` passt auf beide): Telefon, Fax, Mobil, E-Mail, Website und die
+  sozialen Netze. Overpass lädt dafür alle Elemente mit `contact:*`.
+- „Gleich“ heißt: gleicher Text, oder gleich nach der bevorzugten Form von
+  osmValidation; bei Websites zählt ein Schrägstrich am Ende nicht, bei
+  E-Mail die Großschreibung nicht, bei Mehrfachwerten die Reihenfolge nicht.
+  Unterschiedliche Werte werden nicht gemeldet.
+- Der Fund steht auf dem Tag ohne `contact:`, das Eingabefeld ist leer:
+  Übernehmen (Enter) löscht ihn. Wer einen Wert einträgt, korrigiert ihn
+  stattdessen. Andere Funde zum selben Tag entfallen, der Fund kommt je
+  Objekt zuerst.
+- `check_date:website` bleibt stehen, es zählt beim Lesen auch für
+  `contact:website`.
+- `TagChange.duplicateOf` merkt sich den behaltenen Key: Liste vor dem
+  Hochladen „… löschen (steht in contact:website)“, Kommentar „doppelte
+  Angaben entfernt (contact:* bleibt): Websites“.
 
 ## Vor Ort prüfen (OSM-Hinweise)
 

@@ -1,7 +1,7 @@
 import type { CountryCode } from 'osmvalidation';
 import { auth, CLIENT_ID, handleRedirect, login, logout, userName } from './auth.js';
 import { ChangeStore, type TagChange } from './changes.js';
-import { CHECKS, elementCountry, evaluate, findIssues, type Check, type Issue } from './checks.js';
+import { CHECKS, coversKey, elementCountry, evaluate, findIssues, type Check, type Issue } from './checks.js';
 import {
   applyClosure,
   currentActions,
@@ -13,6 +13,7 @@ import {
   updateDeletion,
   type TagAction,
 } from './closure.js';
+import { DUPLICATES, duplicateIssues } from './duplicates.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
@@ -170,6 +171,7 @@ function renderChecks(): void {
   $('checks').replaceChildren(
     ...CHECKS.filter((check) => check.group === undefined).map((check) => checkbox(check.id, check.label, selected.has(check.id))),
     socialGroup(selected),
+    checkbox(DUPLICATES.id, DUPLICATES.label, selected.has(DUPLICATES.id)),
   );
   updateSocialGroup();
   const hint = (text: string) => Object.assign(document.createElement('p'), { className: 'hint', textContent: text });
@@ -249,6 +251,7 @@ async function startDownload(): Promise<void> {
   const wikidataOnline = onlineSelected(WIKIDATA_ONLINE.id);
   const websiteOnline = onlineSelected(WEBSITE_ONLINE.id);
   const confirmOnline = onlineSelected(CONFIRM_ONLINE.id);
+  const duplicates = onlineSelected(DUPLICATES.id);
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
   showError(undefined);
@@ -265,6 +268,9 @@ async function startDownload(): Promise<void> {
     if (confirmOnline) {
       keyPatterns.push(CONFIRM_ONLINE.keyPattern);
     }
+    if (duplicates) {
+      keyPatterns.push(DUPLICATES.keyPattern);
+    }
     const center = mapView.center();
     const [downloaded, country] = await Promise.all([
       download(buildQuery(keyPatterns, mapView.bbox()), {
@@ -276,6 +282,15 @@ async function startDownload(): Promise<void> {
     ]);
     fallbackCountry = country;
     let found = findIssues(downloaded, checks, fallbackCountry);
+    if (duplicates) {
+      // a duplicate is removed, so there is nothing to correct in it
+      const removed = duplicateIssues(downloaded, (element) => {
+        const country = elementCountry(element, fallbackCountry);
+        return country === undefined ? {} : { country };
+      });
+      const isRemoved = (issue: Issue) => removed.some((r) => r.element === issue.element && r.key === issue.key);
+      found = [...removed, ...found.filter((issue) => !isRemoved(issue))];
+    }
 
     if (wikidataOnline) {
       hint.textContent = 'Prüfe Wikidata …';
@@ -392,7 +407,8 @@ function showIssue(): void {
 
   const input = $<HTMLInputElement>('issue-input');
   const pending = changes.get(issue.element, issue.key);
-  input.value = pending === undefined ? (issue.suggestion ?? issue.value) : (pending.newValue ?? '');
+  input.value =
+    pending === undefined ? (issue.kind === 'duplicate' ? '' : (issue.suggestion ?? issue.value)) : (pending.newValue ?? '');
   $<HTMLButtonElement>('remove-tag').disabled = pending !== undefined && pending.newValue === undefined;
   // a confirmation from an earlier visit counts as opened
   openedValue = changes.get(issue.element, checkDateKey(issue.key))?.verifies?.value;
@@ -413,6 +429,11 @@ function checkInput(): void {
   if (value.trim() === '') {
     const pending = changes.get(issue.element, issue.key);
     const removed = pending !== undefined && pending.newValue === undefined;
+    if (issue.kind === 'duplicate') {
+      hint.textContent = `${removed ? 'Wird' : 'Übernehmen löscht'} ${issue.key}, der Wert bleibt in ${issue.duplicateOf}.`;
+      hint.className = 'hint ok';
+      return;
+    }
     hint.textContent = removed
       ? 'Der Tag wird gelöscht. Einen Wert eingeben und übernehmen, um ihn doch zu behalten.'
       : 'Der Wert darf nicht leer sein. Zum Entfernen „Tag löschen“ verwenden.';
@@ -440,7 +461,8 @@ let openedValue: string | undefined;
  * only for verifiable keys, and only once exactly this value was opened.
  */
 function updateVerify(issue: Issue, value: string): void {
-  const verifiable = isVerifiable(issue.key);
+  // nothing to open while a duplicate is to be removed
+  const verifiable = isVerifiable(issue.key) && !(issue.kind === 'duplicate' && value.trim() === '');
   const target = verifiable ? openableUrl(issue.key, value.trim()) : undefined;
   const open = $<HTMLAnchorElement>('issue-open');
   $('issue-open-row').hidden = target === undefined;
@@ -466,6 +488,11 @@ function accept(verified: boolean): void {
     return;
   }
   const value = $<HTMLInputElement>('issue-input').value.trim();
+  if (value === '' && issue.kind === 'duplicate' && !verified) {
+    removeTag(changes, issue.element, issue.key, issue.duplicateOf);
+    goTo(current + 1);
+    return;
+  }
   if (value === '' || (verified && openedValue !== value)) {
     return;
   }
@@ -695,10 +722,11 @@ function onReviewKey(event: KeyboardEvent): void {
 
 function defaultComment(list: TagChange[]): string {
   const labels = (keys: string[]) =>
-    CHECKS.filter((check) => keys.some((key) => new RegExp(check.keyPattern).test(key))).map((check) => check.label);
+    CHECKS.filter((check) => keys.some((key) => coversKey(check, key))).map((check) => check.label);
   const own = list.filter((c) => c.verifies === undefined && c.closed === undefined);
   const corrected = labels(own.filter((c) => c.newValue !== undefined).map((c) => c.key));
-  const removed = labels(own.filter((c) => c.newValue === undefined).map((c) => c.key));
+  const removed = labels(own.filter((c) => c.newValue === undefined && c.duplicateOf === undefined).map((c) => c.key));
+  const duplicates = labels(own.filter((c) => c.duplicateOf !== undefined).map((c) => c.key));
   const verified = labels(list.flatMap((c) => (c.verifies === undefined ? [] : [c.verifies.key])));
   const closed = new Set(list.filter((c) => c.closed === true).map((c) => elementKey(c))).size;
   const parts: string[] = [];
@@ -710,6 +738,9 @@ function defaultComment(list: TagChange[]): string {
   }
   if (removed.length > 0) {
     parts.push(`entfernt: ${removed.join(', ')}`);
+  }
+  if (duplicates.length > 0) {
+    parts.push(`doppelte Angaben entfernt (contact:* bleibt): ${duplicates.join(', ')}`);
   }
   if (verified.length > 0) {
     parts.push(`online geprüft (check_date): ${verified.join(', ')}`);
@@ -734,6 +765,9 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
   item.append(link, document.createElement('br'), code(change.key, ''), ': ');
   if (change.newValue === undefined) {
     item.append(code(change.oldValue ?? '', 'old'), ' löschen');
+    if (change.duplicateOf !== undefined) {
+      item.append(` (steht in ${change.duplicateOf})`);
+    }
   } else if (change.oldValue === undefined) {
     item.append('neu ', code(change.newValue, 'new'));
   } else {
@@ -913,7 +947,7 @@ $('issue-input').addEventListener('input', checkInput);
 $('remove-tag').addEventListener('click', () => {
   const issue = issues[current];
   if (issue !== undefined) {
-    removeTag(changes, issue.element, issue.key);
+    removeTag(changes, issue.element, issue.key, issue.duplicateOf);
     goTo(current + 1);
   }
 });

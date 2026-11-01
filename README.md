@@ -1,7 +1,8 @@
 # osmCorrection
 
 Prüft und korrigiert OpenStreetMap-Daten im Browser: Telefon- und Faxnummern,
-E-Mail-Adressen, Websites, Wikipedia, Wikidata und 20 soziale Netze und
+E-Mail-Adressen, Websites (auch `website:menu`, `website:booking` und
+die anderen `website:*`, `reservation:website`, `opening_hours:url`), Wikipedia, Wikidata und 20 soziale Netze und
 Messenger (Facebook, X, Instagram, Mastodon, WhatsApp …, unter „Soziale
 Netze“ gemeinsam oder einzeln wählbar). Die
 Prüfregeln kommen aus [osmValidation](https://github.com/cyper85/osmValidation),
@@ -21,6 +22,11 @@ Websites und Profile in sozialen Netzen kann man im neuen Tab öffnen und mit
 „Geöffnet und geprüft“ bestätigen; dann wird `check_date:<Tag>` gesetzt, und
 der Wert wird für 24 Monate (`VITE_CHECK_INTERVAL_MONTHS` in `.env`) nicht
 erneut vorgelegt.
+
+„Doppelte Angaben“ findet Tags wie `website` und `contact:website` mit
+demselben Wert, auch wenn er nur anders geschrieben ist (Schrägstrich am Ende,
+Großschreibung der E-Mail-Adresse, Reihenfolge mehrerer Nummern). Vorgeschlagen
+wird, den Tag ohne `contact:` zu löschen; `contact:*` bleibt.
 
 Einzelne Tags lassen sich löschen. Gibt es ein Geschäft nicht mehr, wählt man
 unter „Gibt es nicht mehr …“ für jeden Tag: behalten, löschen, `disused:` oder

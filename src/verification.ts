@@ -1,5 +1,5 @@
 import { facebookUrl, twitterUrl } from 'osmvalidation';
-import { CHECKS, evaluate, type Check, type Issue } from './checks.js';
+import { CHECKS, coversKey, evaluate, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
 
 /*
@@ -10,15 +10,12 @@ import { elementKey, type OsmElement } from './osm.js';
  */
 
 /** Checks of keys whose values can be verified online: websites and profiles. */
-const VERIFIABLE = CHECKS.filter((check) => check.verifiable === true).map((check) => ({
-  check,
-  pattern: new RegExp(check.keyPattern),
-}));
+const VERIFIABLE = CHECKS.filter((check) => check.verifiable === true);
 
 export const CONFIRM_ONLINE = {
   id: 'confirm-online',
   label: 'Websites und Profile bestätigen',
-  keyPattern: VERIFIABLE.map(({ check }) => check.keyPattern).join('|'),
+  keyPattern: VERIFIABLE.map((check) => check.keyPattern).join('|'),
 } as const;
 
 const DEFAULT_INTERVAL_MONTHS = 24;
@@ -30,7 +27,7 @@ export const CHECK_INTERVAL_MONTHS = ((): number => {
 })();
 
 export function isVerifiable(key: string): boolean {
-  return VERIFIABLE.some(({ pattern }) => pattern.test(key));
+  return VERIFIABLE.some((check) => coversKey(check, key));
 }
 
 export function checkDateKey(key: string): string {
@@ -113,7 +110,7 @@ export function openableUrl(key: string, value: string): string | undefined {
 }
 
 function formatCheck(key: string): Check | undefined {
-  return VERIFIABLE.find(({ pattern }) => pattern.test(key))?.check;
+  return VERIFIABLE.find((check) => coversKey(check, key));
 }
 
 /**

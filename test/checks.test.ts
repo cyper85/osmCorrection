@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHECKS, findIssues, type Check } from '../src/checks.js';
+import { CHECKS, coversKey, findIssues, type Check } from '../src/checks.js';
 import type { OsmElement } from '../src/osm.js';
 
 function check(id: string): Check {
@@ -23,13 +23,20 @@ describe('key patterns', () => {
     ['url', 'website', true],
     ['url', 'contact:website', true],
     ['url', 'url', true],
-    ['url', 'website:menu', false],
+    ['url', 'website:menu', true],
+    ['url', 'website:opening_hours', true],
+    ['url', 'reservation:website', true],
+    ['url', 'website:departures', true],
+    ['url', 'opening_hours:url', true],
+    ['url', 'website:1', false],
+    ['url', 'website:note', false],
+    ['url', 'contact:website:menu', false],
     ['wikipedia', 'brand:wikipedia', true],
     ['wikipedia', 'wikipedia:de', false],
     ['wikidata', 'wikidata', true],
     ['twitter', 'contact:x', true],
   ])('%s matches %s: %s', (id, key, expected) => {
-    expect(new RegExp(check(id).keyPattern).test(key)).toBe(expected);
+    expect(coversKey(check(id), key)).toBe(expected);
   });
 
   it('every key belongs to at most one check', () => {
