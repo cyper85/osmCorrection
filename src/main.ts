@@ -18,8 +18,16 @@ import {
   alreadyRead,
   analyze,
   apiKey,
+  AI_VENDORS,
+  aiLabel,
   ASSIST_ONLINE,
   assistIssues,
+  statedAi,
+  type ImportedFolder,
+  exportJobs,
+  importFindings,
+  jobFiles,
+  readFolder,
   siteOf,
   costRange,
   dollars,
@@ -37,10 +45,10 @@ import { DUPLICATES, duplicateIssues } from './duplicates.js';
 import { SYNONYM_KEYS, synonymIssues } from './synonyms.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
-import { elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
+import { elementCenter, elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
 import { applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
 import { createNote, noteFor, noteText, noteUrl, rememberNote } from './notes.js';
-import { buildQuery, download } from './overpass.js';
+import { buildIdQuery, buildQuery, download } from './overpass.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
 import {
   CHECK_INTERVAL_MONTHS,
@@ -281,6 +289,8 @@ function updateDownloadButton(): void {
   const button = $<HTMLButtonElement>('download');
   const hint = $('download-hint');
   const size = `${SELECTION_SIZE_M} m × ${SELECTION_SIZE_M} m`;
+  // the job for Claude Code only needs the frame, not the chosen checks
+  $<HTMLButtonElement>('export-claude').disabled = !mapView.canDownload();
   if (!mapView.canDownload()) {
     button.disabled = true;
     hint.textContent = `Bitte weiter hineinzoomen (mindestens Zoomstufe ${MIN_DOWNLOAD_ZOOM}). Es lassen sich höchstens ${size} auf einmal laden.`;
@@ -377,22 +387,183 @@ async function startDownload(): Promise<void> {
       found = [...assistIssues(downloaded), ...found];
     }
 
-    // issues of one element one after the other, in download order
-    const order = new Map(downloaded.map((el, index) => [el, index]));
-    issues = found
-      .map((issue, index) => ({ issue, index }))
-      .sort((a, b) => (order.get(a.issue.element) ?? 0) - (order.get(b.issue.element) ?? 0) || a.index - b.index)
-      .map(({ issue }) => issue);
-
-    current = 0;
-    visited = new Set();
-    assistRuns.clear();
-    assistActive = aiAssist;
     hint.textContent = '';
-    mapView.showIssues(issues, goTo);
-    showStep('review');
-    $('no-issues').hidden = issues.length > 0;
-    showIssue();
+    beginReview(downloaded, found, aiAssist);
+  } catch (error) {
+    showError(error);
+    hint.textContent = '';
+  } finally {
+    updateDownloadButton();
+  }
+}
+
+/** Starts the review of the findings; the findings of one element one after the other. */
+function beginReview(elements: OsmElement[], found: Issue[], aiAssist: boolean, notice = ''): void {
+  const order = new Map(elements.map((el, index) => [el, index]));
+  issues = found
+    .map((issue, index) => ({ issue, index }))
+    .sort((a, b) => (order.get(a.issue.element) ?? 0) - (order.get(b.issue.element) ?? 0) || a.index - b.index)
+    .map(({ issue }) => issue);
+  current = 0;
+  visited = new Set();
+  assistRuns.clear();
+  assistActive = aiAssist;
+  mapView.showIssues(issues, goTo);
+  showStep('review');
+  $('no-issues').hidden = issues.length > 0;
+  $('review-notice').hidden = notice === '';
+  $('review-notice').textContent = notice;
+  showIssue();
+}
+
+// ---------------------------------------------------------------- Claude Code (docs/ki-claude-code.md)
+
+function saveFile(name: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+  Object.assign(document.createElement('a'), { href: url, download: name }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/**
+ * Downloads the frame and saves the job files for Claude Code right away:
+ * the elements with a website whose opening hours were not checked recently.
+ */
+async function exportForClaudeCode(): Promise<void> {
+  const button = $<HTMLButtonElement>('export-claude');
+  const hint = $('export-hint');
+  showError(undefined);
+  button.disabled = true;
+  hint.hidden = false;
+  hint.textContent = 'Lade Daten von Overpass …';
+  try {
+    const elements = await download(buildQuery([ASSIST_ONLINE.keyPattern], mapView.bbox()), {
+      onAttempt: (url, round) => {
+        hint.textContent = `Lade Daten von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+      },
+    });
+    const jobs = exportJobs(elements);
+    if (jobs.length === 0) {
+      hint.textContent = `Im Rahmen gibt es keine Objekte mit Website, deren Öffnungszeiten seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft wurden.`;
+      return;
+    }
+    const files = jobFiles(jobs, today());
+    const names = files.map((_, i) => (files.length === 1 ? 'auftrag.md' : `auftrag-${i + 1}.md`));
+    files.forEach((text, i) => saveFile(names[i]!, text));
+    hint.textContent =
+      `${jobs.length === 1 ? '1 Website' : `${jobs.length} Websites`} in ${names.join(', ')}. ` +
+      'Jede Datei in einen eigenen, leeren Ordner legen, dort den KI-Agenten (z. B. Claude Code) starten und „Arbeite ' +
+      `${files.length === 1 ? 'auftrag.md' : 'auftrag-1.md'} ab“ schreiben. Danach hier das Ergebnis importieren.`;
+  } catch (error) {
+    showError(error);
+    hint.hidden = true;
+  } finally {
+    updateDownloadButton();
+  }
+}
+
+/** The folder read, until the user has confirmed the maker of the AI model. */
+let pendingImport: ImportedFolder | undefined;
+const OTHER_VENDOR = '';
+
+/** Reads the folder and asks which AI made the answers (the answers state it, but cannot prove it). */
+async function readImportFolder(files: File[]): Promise<void> {
+  const hint = $('download-hint');
+  showError(undefined);
+  $('import-confirm').hidden = true;
+  try {
+    hint.textContent = 'Lese den Ordner …';
+    const folder = await readFolder(files);
+    if (folder.answers.length === 0) {
+      throw new Error(
+        folder.errors.length > 0
+          ? `Keine lesbare Antwort im Ordner: ${folder.errors.join('; ')}`
+          : 'Im Ordner gibt es keine Antworten (antworten/*.json). Ist es der Ordner, in dem der KI-Agent gearbeitet hat?',
+      );
+    }
+    hint.textContent = '';
+    pendingImport = folder;
+    const { vendors, models, descriptions, missing } = statedAi(folder);
+    const count = folder.answers.length === 1 ? '1 Antwort' : `${folder.answers.length} Antworten`;
+    $('import-stated').textContent =
+      `${count} gelesen. ` +
+      (descriptions.length === 0
+        ? 'Sie nennen nicht, welche KI sie geschrieben hat.'
+        : `Laut den Antworten geschrieben von: ${descriptions.join('; ')}` +
+          (missing > 0 ? ` (${missing} ohne Angabe)` : '') +
+          (vendors.length > 1 ? '. Die Angaben sind unterschiedlich.' : '.')) +
+      ' Bitte bestätigen oder korrigieren.';
+    const select = $<HTMLSelectElement>('import-vendor');
+    const stated = vendors.length === 1 ? vendors[0]! : undefined;
+    const known = AI_VENDORS.find((v) => v.toLowerCase() === stated?.toLowerCase());
+    select.replaceChildren(
+      new Option('bitte wählen', '__none__', false, stated === undefined),
+      ...AI_VENDORS.map((v) => new Option(v, v, false, v === known)),
+      new Option('anderer …', OTHER_VENDOR, false, stated !== undefined && known === undefined),
+    );
+    const other = $<HTMLInputElement>('import-vendor-other');
+    other.value = stated !== undefined && known === undefined ? stated : '';
+    other.hidden = select.value !== OTHER_VENDOR;
+    // the model only if all answers name the same one
+    $<HTMLInputElement>('import-model').value = models.length === 1 ? models[0]! : '';
+    $('import-confirm').hidden = false;
+    select.focus();
+  } catch (error) {
+    showError(error);
+    hint.textContent = '';
+  } finally {
+    $<HTMLInputElement>('import-folder').value = '';
+  }
+}
+
+function confirmedVendor(): string {
+  const select = $<HTMLSelectElement>('import-vendor');
+  return select.value === OTHER_VENDOR ? $<HTMLInputElement>('import-vendor-other').value.trim() : select.value;
+}
+
+async function importFromClaudeCode(folder: ImportedFolder, vendor: string, model: string): Promise<void> {
+  const label = aiLabel(vendor, model);
+  const hint = $('download-hint');
+  showError(undefined);
+  try {
+    const refs = folder.answers.flatMap((answer) => answer.elements);
+    hint.textContent = 'Lade die Objekte …';
+    const elements = await download(buildIdQuery(refs), {
+      onAttempt: (url, round) => {
+        hint.textContent = `Lade die Objekte von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+      },
+    });
+    const centers = elements.flatMap((element) => elementCenter(element) ?? []);
+    const first = centers[0];
+    fallbackCountry = first === undefined ? undefined : await countryAt(first.lat, first.lon).catch(() => undefined);
+    hint.textContent = 'Prüfe die Vorschläge …';
+    const found = await importFindings(
+      folder,
+      elements,
+      (element) => elementCountry(element, fallbackCountry),
+      today(),
+      vendor,
+      label,
+    );
+    // the other chosen checks run for these elements as well
+    const checks = selectedChecks();
+    const other = checks.length > 0 ? findIssues(elements, checks, fallbackCountry) : [];
+
+    const missing = refs.filter((ref) => !elements.some((e) => e.type === ref.type && e.id === ref.id));
+    const notice = [
+      `${folder.answers.length === 1 ? '1 Antwort' : `${folder.answers.length} Antworten`} der KI importiert (${label}), ` +
+        `${found.length === 1 ? '1 Fund' : `${found.length} Funde`} der KI.`,
+      missing.length > 0 ? `Nicht mehr in OSM: ${missing.map((r) => `${r.type}/${r.id}`).join(', ')}.` : '',
+      folder.errors.length > 0 ? `Nicht lesbar: ${folder.errors.join('; ')}.` : '',
+    ]
+      .filter((line) => line !== '')
+      .join(' ');
+    hint.textContent = '';
+    if (centers.length > 0) {
+      const lats = centers.map((c) => c.lat);
+      const lons = centers.map((c) => c.lon);
+      mapView.fitBox(Math.min(...lats), Math.min(...lons), Math.max(...lats), Math.max(...lons));
+    }
+    beginReview(elements, [...found, ...other], false, notice);
   } catch (error) {
     showError(error);
     hint.textContent = '';
@@ -1190,6 +1361,37 @@ $('pending-discard').addEventListener('click', () => {
 });
 
 $('download').addEventListener('click', () => void startDownload());
+$('import-claude').addEventListener('click', () => $('import-folder').click());
+$('import-folder').addEventListener('change', () => {
+  const input = $<HTMLInputElement>('import-folder');
+  if (input.files !== null && input.files.length > 0) {
+    void readImportFolder([...input.files]);
+  }
+});
+$('import-vendor').addEventListener('change', () => {
+  const other = $<HTMLInputElement>('import-vendor-other');
+  other.hidden = $<HTMLSelectElement>('import-vendor').value !== OTHER_VENDOR;
+  if (!other.hidden) {
+    other.focus();
+  }
+});
+$('import-confirm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const vendor = confirmedVendor();
+  if (vendor === '' || vendor === '__none__' || pendingImport === undefined) {
+    $('download-hint').textContent = 'Bitte den Hersteller des KI-Modells angeben.';
+    return;
+  }
+  const folder = pendingImport;
+  pendingImport = undefined;
+  $('import-confirm').hidden = true;
+  void importFromClaudeCode(folder, vendor, $<HTMLInputElement>('import-model').value);
+});
+$('import-confirm-cancel').addEventListener('click', () => {
+  pendingImport = undefined;
+  $('import-confirm').hidden = true;
+});
+$('export-claude').addEventListener('click', () => void exportForClaudeCode());
 mapView.map.on('zoomend', updateDownloadButton);
 
 $('issue-form').addEventListener('submit', (event) => {

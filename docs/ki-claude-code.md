@@ -1,6 +1,8 @@
 # Konzept: KI-Auswertung über Claude Code (Pro-Abo)
 
-Stand 2026-11-01, Entwurf zur Abstimmung mit Andreas. Noch nicht umgesetzt.
+Stand 2026-11-02. Umgesetzt im Branch `claude-code` (osmCorrection und
+osmAssist), getestet mit nachgebauten Antworten; ein Probelauf mit echtem
+Claude Code steht noch aus.
 Ergänzt [ki-unterstuetzung.md](ki-unterstuetzung.md): dort wertet osmCorrection
 die Website direkt über die API aus (eigener API-Schlüssel, Kosten pro
 Auswertung). Hier läuft die Auswertung in Claude Code und damit über das
@@ -37,9 +39,10 @@ osmCorrection              Claude Code (lokal, Arbeitsordner)           osmCorre
                               Antwortdatei schreiben                    einzeln freigeben
 ```
 
-1. **Export (osmCorrection).** „Für Claude Code exportieren“ lädt eine
-   Datei `auftrag.md` herunter: die Arbeitsanweisung, das Antwortformat und
-   die Liste der Objekt-IDs. Mehr nicht.
+1. **Export (osmCorrection).** „Auftrag für Claude Code erstellen“ in
+   Schritt 1 lädt den Rahmen und speichert sofort `auftrag.md`: die
+   Arbeitsanweisung, das Antwortformat und die Liste der Objekt-IDs. Der
+   Prüfschritt wird dafür nicht gebraucht.
 2. **Auswertung (Claude Code).** Der Nutzer legt `auftrag.md` in einen
    leeren Ordner, startet dort Claude Code und schreibt „Arbeite auftrag.md
    ab“. Claude holt Objekte und Websites per `curl`, liest die Seiten und
@@ -114,6 +117,17 @@ Zusatzsoftware:
 
 - `--virtual-time-budget=8000` gibt der Seite bis zu 8 Sekunden Zeit zum
   Aufbauen, bevor das HTML ausgegeben wird.
+- **Profilpfad absolut angeben.** Mit einem relativen Pfad
+  (`--user-data-dir=browser`) zeigt Edge unter Windows die Meldung „Das
+  Datenverzeichnis konnte nicht erstellt werden“, und der Lauf hängt
+  (erster Probelauf am 2026-11-02). In Git Bash `"$(cygpath -w "$PWD/browser")"`.
+- **Unter Windows nicht mit `>` aus PowerShell oder cmd umleiten:** beide
+  warten nicht auf Edge, die Datei bleibt leer. In PowerShell
+  `Start-Process … -RedirectStandardOutput … -Wait` (getestet), in Git Bash
+  funktioniert `>`. Beide Befehle stehen in `auftrag.md`.
+- **Zeichensätze:** Der Import liest UTF-8, UTF-16 (mit Byte-Order-Mark) und
+  den Zeichensatz, den die Seite angibt (bei `curl` z. B. ISO-8859-1).
+  Leere Seitendateien zählen als nicht abgerufen.
 - **Eigenes, leeres Browserprofil** im Arbeitsordner (`--user-data-dir`):
   keine Anmeldungen, Cookies oder Erweiterungen des Nutzers. Das Profil
   wird nach dem Lauf gelöscht.
@@ -175,7 +189,7 @@ unabhängig von den aktuellen Tags; der Abgleich passiert beim Import.
 - **Freigabe** wie gewohnt; Übernehmen setzt den Tag, `source:<key>=website`
   und `check_date:<key>`.
 - **Changeset:** `source=website`, `ai_assisted=Anthropic`, Kommentar
-  „… ausgewertet mit KI-Unterstützung (Anthropic, Claude Code)“.
+  „… ausgewertet mit KI-Unterstützung (Anthropic)“.
 
 ## Sicherheit
 
@@ -207,9 +221,48 @@ Anweisungen unterzuschieben, ist hier gefährlicher als bei der API.
   mehrere Auftragsdateien. Das Kontingent wird mit der normalen Nutzung
   geteilt und erneuert sich nach Zeitfenstern.
 
+## Erster Probelauf (2026-11-02)
+
+Ausschnitt in Ilmenau, 17 Aufträge in zwei Dateien, Claude Code mit Opus 5.5
+(Pro). Ergebnis nach den Korrekturen unten: 25 Vorschläge, 3 Hinweise
+(zwei Domains zum Verkauf bzw. ohne Inhalt, ein Bowlingcenter, das laut
+Website zum 31.03.2026 schließt), 10 Angaben stimmten schon mit OSM überein.
+
+Aufgefallen und behoben:
+
+- Edge mit relativem Profilpfad: Fehlerdialog, Lauf hängt (siehe oben).
+- Claude schrieb bei Hinweisen `"signal"` statt `"kind"`, weil das Beispiel
+  keinen Hinweis enthielt. `auftrag.md` enthält jetzt das JSON-Schema der
+  Antwortdatei (`ANSWER_FILE_SCHEMA`, aus denselben Listen wie der Import)
+  und ein Beispiel mit Hinweis; Claude soll jede Datei vor dem Speichern
+  dagegen prüfen. Der Import akzeptiert `signal` und `type` als `kind` und
+  nennt bei Fehlern Eintrag und Feld. Gegen das Schema geprüft, waren das
+  die einzigen Abweichungen der 17 Antworten.
+- Geparkte Domain nur im Seitentitel erkennbar: die Textumwandlung behält
+  jetzt den Titel.
+- Alte Domain verlinkt auf die neue (Lebenshilfewerk): Quellen auf Domains,
+  auf die die Website selbst verlinkt, gelten als Teil der Website
+  (außer Plattformen wie Facebook, Google, Wikipedia).
+- Öffnungszeiten, die sich nur durch ausdrückliche Ruhetage wie
+  `Su,PH off` unterscheiden, galten als Änderung und hätten diese Angabe
+  gelöscht. Öffnungszeiten werden jetzt über eine Referenzwoche verglichen.
+- Zitate über Links hinweg („Telefon: … E-Mail: …“) wurden nicht gefunden,
+  weil die Textumwandlung Link-Adressen einfügt. Zitate werden zusätzlich
+  gegen den Text ohne diese Adressen geprüft.
+- Claude schrieb Telefonnummern ohne den Bindestrich vor der Durchwahl
+  (`+49 3677 64140` statt `+49 3677 6414-0`), obwohl er in OSM ausdrücklich
+  erlaubt ist. `auftrag.md` und die Anweisung der API-Auswertung verlangen
+  jetzt den Bindestrich wie auf der Seite; Nummern mit denselben Ziffern
+  gelten beim Abgleich als unverändert.
+
 ## Entscheidungen (2026-11-01)
 
-- `ai_assisted=Anthropic` (nur der Anbieter, keine Modellabfrage).
+- `ai_assisted` = Hersteller des Modells (nicht des Werkzeugs) und Modell,
+  z. B. `Anthropic Claude Opus 5.5`. Die Antwort nennt beides im Feld `ai`
+  (mit Werkzeug), der Nutzer bestätigt beim Import (2026-11-02; ersetzt das
+  feste `Anthropic`). Ohne bekanntes Modell nur der Hersteller.
+- Neutral für jeden KI-Agenten, der Befehle ausführen und Dateien schreiben
+  kann (Claude Code, Kiro, Codex CLI …), nicht für reine Chats.
 - Export enthält nur Objekt-IDs; Claude holt alles Weitere selbst.
 - Kein Node oder Python nötig: Abruf mit Browser ohne Fenster bzw. `curl`,
   Umwandlung in Text beim Import im Browser.

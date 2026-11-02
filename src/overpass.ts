@@ -50,6 +50,29 @@ export function buildQuery(keyPatterns: string[], bbox: BBox): string {
   ].join('\n');
 }
 
+/**
+ * Query for single elements by ID (e.g. the elements of an imported AI
+ * result), with geometry like `buildQuery`.
+ */
+export function buildIdQuery(refs: { type: ElementType; id: number }[]): string {
+  const ids = (type: ElementType) => [...new Set(refs.filter((r) => r.type === type).map((r) => r.id))];
+  const lines = ['[out:json][timeout:90];'];
+  for (const [type, short, out] of [
+    ['node', 'node', 'geom'],
+    ['way', 'way', 'geom'],
+    ['relation', 'rel', 'bb'],
+  ] as const) {
+    const list = ids(type);
+    if (list.length > 0) {
+      lines.push(`${short}(id:${list.join(',')});`, `out meta ${out};`);
+    }
+  }
+  if (lines.length === 1) {
+    throw new Error('no elements');
+  }
+  return lines.join('\n');
+}
+
 interface OverpassElement {
   type: ElementType;
   id: number;

@@ -231,6 +231,41 @@ Umgesetzt am 2026-11-01:
 - `npm run smoke:assist`: Browser-Test mit nachgebauter Overpass- und
   Anthropic-Antwort (kostenlos, ohne Schlüssel).
 
+## KI-Auswertung über Claude Code (Branch `claude-code`)
+
+Konzept: [docs/ki-claude-code.md](docs/ki-claude-code.md). Umgesetzt am
+2026-11-02 im Branch `claude-code` beider Repos:
+
+- osmAssist: `jobFile` (Vorlage `auftrag.md` mit Anweisung, Antwortformat
+  und Objekt-IDs), `parseAnswerFile` (Antwortdateien
+  `osmcorrection-assist-answer`, Version 1), `htmlToText` (ohne DOM, Links
+  behalten ihre Adresse), `readingFromAnswer` (Antwort plus gespeicherte
+  Seiten als `SiteReading`, danach `assess` wie bei der API).
+- osmCorrection: „Auftrag für Claude Code erstellen“ in Schritt 1 neben
+  „Herunterladen und prüfen“: lädt den Rahmen (nur Objekte mit Website,
+  unabhängig von den angehakten Prüfungen) und speichert sofort die
+  Auftragsdateien, ohne Prüfschritt (gewünscht 2026-11-02; je Website und
+  Adresse ein Auftrag, höchstens 15 je Datei); „Ergebnis aus Claude Code
+  importieren …“ in Schritt 1 (Ordnerauswahl, Objekte per Overpass nach ID
+  frisch geladen, `buildIdQuery`), Hinweis mit Zahl der Antworten, nicht
+  mehr vorhandenen Objekten und unlesbaren Dateien. Die angehakten
+  Prüfungen laufen für die importierten Objekte mit.
+- Herkunft (entschieden 2026-11-02): Die Antwortdatei hat das Pflichtfeld
+  `ai` (`vendor` = Hersteller des **Modells**, nicht des Werkzeugs; `model`;
+  `tool`). Beim Import zeigt osmCorrection die Angaben der Antworten und
+  lässt Hersteller (Auswahl plus „anderer“) und Modell (Textfeld, vorbelegt,
+  wenn alle Antworten dasselbe nennen) bestätigen oder korrigieren. Nur die
+  bestätigten Werte kommen in `ai_assisted` und den Kommentar, wie bei der
+  API-Auswertung, z. B. `Anthropic Claude Opus 5.5` (`claude-*`-IDs in
+  lesbarer Form); ohne Modell nur der Hersteller. Ein Claude-Modell in Kiro
+  ist `Anthropic`. Oberfläche und `auftrag.md` sind
+  neutral formuliert („KI-Agent, z. B. Claude Code“), Schaltfläche
+  „Auftrag für KI erstellen“.
+- JSON-Schema der Antwortdatei in osmAssist: `schema/answer-file.schema.json`
+  (aus `ANSWER_FILE_SCHEMA` mit `npm run schema`, Test prüft Gleichheit),
+  Doku `docs/answer-file.md`.
+- `npm run smoke:assist` prüft Export und Import mit.
+
 ## Vor Ort prüfen (OSM-Hinweise)
 
 Entschieden mit Andreas am 2026-10-31: Ist unklar, ob es ein Objekt noch

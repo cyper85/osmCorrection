@@ -3,6 +3,9 @@
 //
 //   npm run build && npx vite preview --port 4173   (in a second terminal)
 //   npm run smoke:assist
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:4173/';
@@ -117,8 +120,18 @@ check('settings shown with the check', await page.locator('#assist-settings').is
 await page.fill('#ai-key', 'sk-ant-test');
 await page.locator('#ai-key').dispatchEvent('change');
 
+// job for Claude Code straight from the frame, without the review
+const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-claude')]);
+const job = readFileSync(await download.path(), 'utf8');
+check(
+  'job for Claude Code from the frame',
+  download.suggestedFilename() === 'auftrag.md' && /- a1: node\/42, node\/43/.test(job) && (await page.locator('#step-select').isVisible()),
+  await text('export-hint'),
+);
+
 await page.click('#download');
 await page.waitForSelector('#step-review:not([hidden])');
+// export for Claude Code: one job for both elements (same website, no address)
 check('AI finding first', await page.locator('#assist').isVisible() && (await text('progress')).startsWith('Fund 1'), await text('assist-status'));
 check('AI finding: no value, button „Weiter“', !(await page.locator('#issue-input').isVisible()) && (await text('accept')) === 'Weiter', await text('accept'));
 
@@ -178,6 +191,47 @@ check('source and check_date', /source:opening_hours.*website/.test(diff) && /ch
 check('suggestion marked in the list', /Vorschlag von Anthropic Claude Sonnet 5\.5/.test(diff));
 const comment = await page.inputValue('#comment');
 check('comment names the AI', /KI-Unterstützung \(Anthropic Claude Sonnet 5\.5\)/.test(comment), comment);
+
+// import of a Claude Code working folder
+const folder = mkdtempSync(join(tmpdir(), 'osmcorrection-'));
+mkdirSync(join(folder, 'antworten'));
+mkdirSync(join(folder, 'seiten'));
+writeFileSync(join(folder, 'auftrag.md'), job);
+writeFileSync(join(folder, 'seiten', 'a1-1.html'), `<html><body><p>${PAGE.replace(/\n/g, '</p><p>')}</p></body></html>`);
+writeFileSync(
+  join(folder, 'antworten', 'a1.json'),
+  JSON.stringify({
+    format: 'osmcorrection-assist-answer',
+    version: 1,
+    ai: { vendor: 'anthropic', model: 'claude-opus-5-5', tool: 'Claude Code' },
+    job: 'a1',
+    elements: ['node/42', 'node/43'],
+    url: SITE,
+    fetched_with: 'browser',
+    pages: [{ url: SITE, file: 'seiten/a1-1.html' }],
+    ...answer,
+  }),
+);
+await page.click('#upload-back');
+await page.click('#restart');
+await page.setInputFiles('#import-folder', folder);
+await page.waitForSelector('#import-confirm:not([hidden])');
+check(
+  'import asks for the maker of the model',
+  (await page.inputValue('#import-vendor')) === 'Anthropic' &&
+    (await page.inputValue('#import-model')) === 'claude-opus-5-5' &&
+    /anthropic \(claude-opus-5-5, Claude Code\)/.test(await text('import-stated')),
+  await text('import-stated'),
+);
+await page.click('#import-confirm-ok');
+await page.waitForSelector('#step-review:not([hidden])');
+check('import summary', /1 Antwort der KI importiert \(Anthropic Claude Opus 5\.5\), 3 Funde der KI/.test(await text('review-notice')), await text('review-notice'));
+check(
+  'imported suggestion with quote',
+  (await text('issue-key')) === 'opening_hours' && /ausgewertet von Anthropic Claude Opus 5\.5\)/.test(await text('issue-quote')),
+  (await text('issue-quote')).replace(/\n/g, ' '),
+);
+rmSync(folder, { recursive: true, force: true });
 
 await page.evaluate(() => {
   localStorage.removeItem('osmCorrection.changes');

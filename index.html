@@ -75,13 +75,49 @@
             und jeder Vorschlag muss einzeln übernommen werden.
           </p>
         </fieldset>
-        <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
+        <div class="row">
+          <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
+          <button type="button" id="export-claude" class="primary">Auftrag für KI erstellen</button>
+        </div>
         <p id="download-hint" class="hint"></p>
+        <fieldset id="claude-code">
+          <legend>Auswertung mit einem KI-Agenten</legend>
+          <p class="hint">
+            „Auftrag für KI erstellen“ lädt den Rahmen und speichert eine <code>auftrag.md</code> mit allen Objekten, deren
+            Website ausgewertet werden kann. Ein KI-Agent auf deinem Rechner arbeitet sie ab (z. B. Claude Code mit deinem
+            Claude-Abo), danach hier das Ergebnis importieren.
+          </p>
+          <p id="export-hint" class="hint" hidden></p>
+          <div class="row">
+            <button type="button" id="import-claude">Ergebnis der KI importieren …</button>
+            <input type="file" id="import-folder" webkitdirectory multiple hidden />
+          </div>
+          <form id="import-confirm" class="notice" hidden>
+            <p id="import-stated"></p>
+            <label for="import-vendor">Hersteller des KI-Modells (für <code>ai_assisted</code> im Changeset)</label>
+            <select id="import-vendor"></select>
+            <input id="import-vendor-other" placeholder="Hersteller" hidden />
+            <label for="import-model">Modell (leer lassen, wenn unbekannt)</label>
+            <input id="import-model" placeholder="z. B. claude-opus-5-5" autocomplete="off" spellcheck="false" />
+            <p class="hint">
+              Der Hersteller des Modells, nicht des Programms: Ein Claude-Modell in Kiro ist Anthropic.
+            </p>
+            <div class="row">
+              <button type="submit" id="import-confirm-ok" class="primary">Importieren</button>
+              <button type="button" id="import-confirm-cancel">Abbrechen</button>
+            </div>
+          </form>
+          <p class="hint">
+            Den Arbeitsordner wählen, in dem der KI-Agent eine <code>auftrag.md</code> abgearbeitet hat. Die Objekte werden
+            frisch geladen, die Vorschläge kommen zur Prüfung wie bei der KI-Auswertung.
+          </p>
+        </fieldset>
       </section>
 
       <section id="step-review" hidden>
         <h2>2. Prüfen</h2>
         <p id="progress" class="hint"></p>
+        <p id="review-notice" class="notice" hidden></p>
         <div id="issue">
           <p class="element">
             <a id="issue-link" target="_blank" rel="noopener"></a>

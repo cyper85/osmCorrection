@@ -356,3 +356,14 @@ code {
 #issue-form.no-value #issue-check {
   display: none;
 }
+
+#import-confirm label {
+  display: block;
+  margin-top: 0.5em;
+}
+
+#import-confirm select,
+#import-confirm input {
+  width: 100%;
+  box-sizing: border-box;
+}
