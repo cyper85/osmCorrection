@@ -86,23 +86,23 @@ describe('download', () => {
   });
 
   it('skips servers that do not answer or cannot be reached', async () => {
-    const urls = stubFetch('hang', 'network-error', ok());
+    const urls = stubFetch('hang', ok());
     await expect(download('q', fast)).resolves.toHaveLength(1);
     expect(urls).toEqual(OVERPASS_URLS);
   });
 
   it('tries all servers again in a second round', async () => {
     const attempts: number[] = [];
-    const urls = stubFetch(busy(), busy(), 'hang', ok());
+    const urls = stubFetch(busy(), 'network-error', ok());
     await expect(download('q', { ...fast, onAttempt: (_, round) => attempts.push(round) })).resolves.toHaveLength(1);
     expect(urls).toEqual([...OVERPASS_URLS, OVERPASS_URLS[0]]);
-    expect(attempts).toEqual([1, 1, 1, 2]);
+    expect(attempts).toEqual([1, 1, 2]);
   });
 
   it('reports every server if none answers', async () => {
-    stubFetch(busy(), 'network-error', 'hang', busy(), busy(), busy());
+    stubFetch(busy(), 'network-error', busy(), 'hang');
     await expect(download('q', fast)).rejects.toThrow(
-      /Kein Overpass-Server.*overpass-api\.de: ausgelastet \(HTTP 502\).*maps\.mail\.ru: nicht erreichbar.*private\.coffee: keine Antwort/,
+      /Kein Overpass-Server.*overpass-api\.de: ausgelastet \(HTTP 502\).*private\.coffee: keine Antwort/,
     );
   });
 

@@ -19,6 +19,15 @@ export default defineConfig({
       { find: /^osmassist\/claude$/, replacement: fileURLToPath(new URL('./libs/osmAssist/src/claude.ts', import.meta.url)) },
     ],
   },
+  build: {
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        impressum: fileURLToPath(new URL('./impressum.html', import.meta.url)),
+        datenschutz: fileURLToPath(new URL('./datenschutz.html', import.meta.url)),
+      },
+    },
+  },
   server: {
     // OSM only accepts http redirect URIs for 127.0.0.1
     host: '127.0.0.1',

@@ -326,12 +326,14 @@ wieder. Getestet am 2026-10-31 aus Edge:
 | Server | Ergebnis |
 |---|---|
 | overpass-api.de | zeitweise 502, sonst OK |
-| maps.mail.ru (VK) | OK, zeitweise 504 |
+| maps.mail.ru (VK) | OK, zeitweise 504; am 2026-11-02 entfernt (Russland, Datenschutz) |
 | overpass.private.coffee | hing ohne Antwort |
-| overpass.kumi.systems | hing ohne Antwort, nicht eingebaut |
+| overpass.kumi.systems | hing ohne Antwort, nicht eingebaut (heute private.coffee) |
 | overpass.osm.jp | kein CORS, nicht nutzbar |
+| ovp.dresel.systems | CORS offen, antwortet; nur Europa, nur nächtlich aktualisiert, privat mit 4 Kernen; nicht eingebaut |
 
-`download()` fragt die Server der Reihe nach (overpass-api.de, mail.ru,
+Nur Server in EU/EWR, damit die Datenschutzerklärung keine Drittländer
+nennen muss. `download()` fragt die Server der Reihe nach (overpass-api.de,
 private.coffee), jeweils mit 100 s Zeitlimit, und macht nach 5 s eine zweite
 Runde. Erst dann kommt eine Fehlermeldung, die für jeden Server den Grund
 nennt. Eine fehlerhafte Abfrage (z. B. 400) wird sofort gemeldet.

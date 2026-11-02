@@ -3,10 +3,11 @@ import type { Bounds, ElementType, LatLon, OsmElement } from './osm.js';
 /**
  * Public Overpass instances that allow requests from other sites (CORS),
  * tried in order; the next one is used if a server is busy or does not answer.
+ * Only servers in the EU/EEA, see datenschutz.html (maps.mail.ru in Russia was
+ * removed for that reason).
  */
 export const OVERPASS_URLS = [
   'https://overpass-api.de/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
 
