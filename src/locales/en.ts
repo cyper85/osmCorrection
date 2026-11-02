@@ -8,6 +8,10 @@ export const en: Messages = {
   'app.imprint': 'Imprint',
   'app.privacy': 'Privacy',
   'app.source': 'Source code',
+  'app.help': 'Help',
+  'app.helpPage': 'help.html',
+  'app.helpStep': 'Help for this step',
+  'app.helpMore': 'More in the help',
   'app.languageReload': 'The page reloads to switch the language. Changes not yet uploaded are kept, the review starts again.',
   'map.attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 

@@ -1475,9 +1475,19 @@ function setupLanguage(): void {
   });
 }
 
+/** Links to the help page of the current language, in a new tab so the work in progress stays open. */
+function setupHelpLinks(): void {
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[data-help]')) {
+    link.href = `./${t('app.helpPage')}${link.dataset.help ? `#${link.dataset.help}` : ''}`;
+    link.target = '_blank';
+    link.rel = 'noopener';
+  }
+}
+
 async function init(): Promise<void> {
   translatePage();
   setupLanguage();
+  setupHelpLinks();
   renderChecks();
   updateDownloadButton();
   $('config-warning').hidden = CLIENT_ID !== '';

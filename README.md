@@ -58,6 +58,10 @@ Alle Funde stehen als Marker auf der Karte (orange offen, grün geändert, grau
 <kbd>Esc</kbd> alten Wert wiederherstellen. Nicht hochgeladene Änderungen
 bleiben im Browser gespeichert, auch über ein Neuladen oder das Login hinweg.
 
+Eine Anleitung mit Bildern gibt es auf der Seite selbst ([Anleitung](https://osmcorrection.neumann-andreas.de/hilfe.html),
+[Help](https://osmcorrection.neumann-andreas.de/help.html)); jeder Schritt
+verlinkt mit „?“ auf seinen Abschnitt.
+
 Alles läuft im Browser, es gibt keinen Server. Veröffentlicht wird über
 GitHub Pages.
 
@@ -72,6 +76,7 @@ npm test           # vitest
 npm run build      # Typprüfung + Build nach dist/
 npm run smoke      # Browser-Test mit Edge gegen `npx vite preview --port 4173`
 npm run smoke:assist  # KI-Ablauf im Browser, mit nachgebauten Antworten
+npm run screenshots   # Bilder der Anleitung neu erzeugen (public/help/<Sprache>/)
 ```
 
 Aktueller Stand, Entscheidungen und offene Punkte stehen in

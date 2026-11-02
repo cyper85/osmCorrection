@@ -23,7 +23,7 @@
       <p id="error" class="error" role="alert" hidden></p>
 
       <section id="step-login">
-        <h2 data-i18n="login.title"></h2>
+        <h2><span data-i18n="login.title"></span> <a class="help" data-help="start" data-i18n-title="app.helpStep" data-i18n-aria-label="app.helpStep">?</a></h2>
         <p data-i18n="login.intro"></p>
         <div class="row">
           <button type="button" id="login" class="primary" data-i18n="login.button"></button>
@@ -34,7 +34,7 @@
       </section>
 
       <section id="step-select" hidden>
-        <h2 data-i18n="select.title"></h2>
+        <h2><span data-i18n="select.title"></span> <a class="help" data-help="select" data-i18n-title="app.helpStep" data-i18n-aria-label="app.helpStep">?</a></h2>
         <div id="pending" class="notice" hidden>
           <p><strong id="pending-count"></strong> <span data-i18n="select.pendingSuffix"></span></p>
           <div class="row">
@@ -60,6 +60,7 @@
           <select id="ai-model"></select>
           <p id="ai-cost" class="hint"></p>
           <p class="hint" data-i18n-html="ai.keyHint"></p>
+          <p class="hint"><a data-help="ai-key" data-i18n="app.helpMore"></a></p>
         </fieldset>
         <div class="row">
           <button type="button" id="download" class="primary" data-i18n="select.download"></button>
@@ -88,11 +89,12 @@
             </div>
           </form>
           <p class="hint" data-i18n-html="agent.folderHint"></p>
+          <p class="hint"><a data-help="ai-agent" data-i18n="app.helpMore"></a></p>
         </fieldset>
       </section>
 
       <section id="step-review" hidden>
-        <h2 data-i18n="review.title"></h2>
+        <h2><span data-i18n="review.title"></span> <a class="help" data-help="review" data-i18n-title="app.helpStep" data-i18n-aria-label="app.helpStep">?</a></h2>
         <p id="progress" class="hint"></p>
         <p id="review-notice" class="notice" hidden></p>
         <div id="issue">
@@ -171,7 +173,7 @@
       </section>
 
       <section id="step-upload" hidden>
-        <h2 data-i18n="upload.title"></h2>
+        <h2><span data-i18n="upload.title"></span> <a class="help" data-help="upload" data-i18n-title="app.helpStep" data-i18n-aria-label="app.helpStep">?</a></h2>
         <div id="upload-form">
           <p data-i18n="upload.intro"></p>
           <ul id="diff" class="diff"></ul>
@@ -201,7 +203,7 @@
           <select id="language"></select>
         </label>
         ·
-        <a href="./impressum.html" data-i18n="app.imprint"></a> · <a href="./datenschutz.html" data-i18n="app.privacy"></a> ·
+        <a data-help="" data-i18n="app.help"></a> · <a href="./impressum.html" data-i18n="app.imprint"></a> · <a href="./datenschutz.html" data-i18n="app.privacy"></a> ·
         <a href="https://github.com/cyper85/osmCorrection" target="_blank" rel="noopener" data-i18n="app.source"></a>
       </footer>
     </aside>

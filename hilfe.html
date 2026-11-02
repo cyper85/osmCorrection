@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anleitung · osmCorrection</title>
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" href="./logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/help.css" />
+  </head>
+  <body>
+    <!-- screenshots: public/help/de/, made by npm run screenshots -->
+    <main>
+      <header>
+        <a href="./"><img src="./logo.svg" alt="" width="28" height="28" /> osmCorrection</a>
+        <a class="language" href="./help.html" hreflang="en" lang="en">English</a>
+      </header>
+
+      <h1>Anleitung</h1>
+      <p>
+        osmCorrection findet fehlerhafte Angaben in OpenStreetMap, z. B. Telefonnummern im falschen Format, kaputte
+        Websites oder doppelte Tags, und schlägt eine Korrektur vor. Du siehst dir jeden Fund an, entscheidest selbst
+        und lädst die Änderungen am Ende mit deinem OSM-Konto hoch. Alles läuft in deinem Browser.
+      </p>
+
+      <nav class="toc" aria-label="Inhalt">
+        <strong>Inhalt</strong>
+        <ol>
+          <li><a href="#start">Anmelden oder nur ansehen</a></li>
+          <li><a href="#select">Daten auswählen</a></li>
+          <li><a href="#review">Prüfen</a></li>
+          <li><a href="#upload">Hochladen</a></li>
+          <li><a href="#ai">KI-Unterstützung</a>: <a href="#ai-key">mit API-Schlüssel</a> oder <a href="#ai-agent">mit einem KI-Agenten</a></li>
+          <li><a href="#faq">Häufige Fragen</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="start">Anmelden oder nur ansehen</h2>
+      <figure class="part">
+        <img src="./help/de/login.png" alt="Die Startseite mit den Knöpfen „Mit OpenStreetMap anmelden“ und „Ohne Anmeldung ansehen“" loading="lazy" />
+      </figure>
+      <ul>
+        <li>
+          <strong>Mit OpenStreetMap anmelden:</strong> Du wirst zu openstreetmap.org weitergeleitet und erlaubst
+          osmCorrection dort, Änderungen und Hinweise in deinem Namen hochzuladen. Dein Passwort sieht osmCorrection
+          nie.
+        </li>
+        <li>
+          <strong>Ohne Anmeldung ansehen:</strong> Du kannst alles ausprobieren und Funde bearbeiten. Zum Hochladen
+          meldest du dich später an, deine Änderungen bleiben dabei erhalten.
+        </li>
+      </ul>
+
+      <h2 id="select">1. Daten auswählen</h2>
+      <figure>
+        <img src="./help/de/select.jpg" alt="Links die Auswahl der Prüfungen, rechts die Karte mit dem gestrichelten Rahmen" loading="lazy" />
+        <figcaption>Geladen wird der gestrichelte Rahmen in der Kartenmitte.</figcaption>
+      </figure>
+      <ol class="steps">
+        <li>Einen Ort suchen oder die Karte verschieben, bis der <strong>Rahmen</strong> das gewünschte Gebiet zeigt. Er ist höchstens 500 m × 500 m groß. Ist die Karte zu weit herausgezoomt, ist das Laden gesperrt.</li>
+        <li>Ankreuzen, was <strong>geprüft</strong> werden soll (siehe unten). Die Auswahl merkt sich der Browser.</li>
+        <li><strong>Herunterladen und prüfen</strong> klicken. Die Daten kommen von einem Overpass-Server, das dauert meist wenige Sekunden.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/checks.png" alt="Liste der Prüfungen mit Kontrollkästchen" loading="lazy" />
+      </figure>
+      <h3>Die Prüfungen</h3>
+      <ul>
+        <li><strong>Telefon- und Faxnummern, E-Mail-Adressen, Websites, Wikipedia, Wikidata:</strong> Format der Angaben, z. B. <code>0049 …</code> statt <code>+49 …</code>, fehlendes <code>https://</code>, Leerzeichen in E-Mail-Adressen.</li>
+        <li><strong>Soziale Netze:</strong> Links zu Profilen, als Gruppe oder einzeln wählbar („einzeln wählen“).</li>
+        <li><strong>Doppelte Angaben:</strong> derselbe Wert in <code>website</code> und <code>contact:website</code> oder ähnlichen Paaren.</li>
+      </ul>
+      <p>Die <strong>Online-Prüfungen</strong> rufen zusätzlich Dienste oder Websites auf:</p>
+      <ul>
+        <li><strong>Wikidata-Verweise online prüfen:</strong> Gibt es das Wikidata-Objekt noch, und passt der <code>wikipedia</code>-Tag dazu?</li>
+        <li><strong>Websites online prüfen:</strong> Dein Browser ruft jede Website im Rahmen auf und meldet, ob sie antwortet und ob es sie auch per https gibt.</li>
+        <li><strong>Websites und Profile bestätigen:</strong> Zeigt auch gültige Links, die lange nicht geprüft wurden. Du öffnest sie und bestätigst sie, siehe <a href="#confirm">Bestätigen</a>.</li>
+        <li><strong>Mit KI abgleichen:</strong> siehe <a href="#ai">KI-Unterstützung</a>.</li>
+      </ul>
+
+      <h2 id="review">2. Prüfen</h2>
+      <figure>
+        <img src="./help/de/review.jpg" alt="Ein Fund in der Seitenleiste, rechts die Karte mit den Markern der Funde" loading="lazy" />
+        <figcaption>Der aktuelle Fund ist auf der Karte rot markiert. Ein Klick auf einen Marker springt zu diesem Fund.</figcaption>
+      </figure>
+      <p>Die Funde kommen einzeln nacheinander. Zu jedem siehst du das Objekt (Link zu openstreetmap.org), den Tag, den aktuellen Wert und den Befund.</p>
+      <figure class="part">
+        <img src="./help/de/finding.png" alt="Ein Fund: Telefonnummer mit 0049, vorgeschlagen ist +49" loading="lazy" />
+      </figure>
+      <ol class="steps">
+        <li>Den <strong>neuen Wert</strong> prüfen. Meist ist eine Korrektur schon eingetragen; du kannst sie ändern. Darunter steht sofort, ob der Wert gültig ist.</li>
+        <li><strong>Übernehmen</strong> merkt die Änderung vor. Hochgeladen wird erst in Schritt 3.</li>
+        <li><strong>Überspringen</strong> lässt den Wert, wie er ist. <strong>Zurück</strong> geht zum vorigen Fund.</li>
+        <li><strong>Tag löschen</strong> entfernt den Tag ganz, z. B. eine Website, die es nicht mehr gibt.</li>
+      </ol>
+      <h3 id="keys">Tastatur</h3>
+      <table>
+        <tbody>
+          <tr><td><kbd>Enter</kbd></td><td>übernehmen bzw. weiter</td></tr>
+          <tr><td><kbd>Strg</kbd>+<kbd>Enter</kbd></td><td>geprüft (nach dem Öffnen, siehe <a href="#confirm">Bestätigen</a>)</td></tr>
+          <tr><td><kbd>Bild ↓</kbd></td><td>überspringen</td></tr>
+          <tr><td><kbd>Bild ↑</kbd></td><td>zurück</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>alten Wert wiederherstellen bzw. Formular schließen</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="closure">Gibt es nicht mehr …</h3>
+      <p>Für Läden oder Einrichtungen, die geschlossen haben. Du entscheidest für jeden Tag, ob er bleibt, gelöscht wird oder ein Präfix bekommt:</p>
+      <figure class="part">
+        <img src="./help/de/closure.png" alt="Formular „Gibt es nicht mehr“ mit einer Auswahl je Tag" loading="lazy" />
+      </figure>
+      <ul>
+        <li><code>disused:</code> für leer stehende Läden, <code>was:</code> für alles, was ganz verschwunden ist.</li>
+        <li>Darunter steht, welche Tags danach übrig bleiben. Ein Punkt ohne Tags wird beim Hochladen gelöscht, wenn er zu keinem Weg gehört.</li>
+      </ul>
+
+      <h3 id="note">Vor Ort prüfen …</h3>
+      <p>
+        Wenn sich etwas nur vor Ort klären lässt: osmCorrection erstellt einen
+        <a href="https://wiki.openstreetmap.org/wiki/DE:Notes">OSM-Hinweis</a> am Objekt. Mapper vor Ort sehen ihn auf der
+        Karte und in StreetComplete. Der Text ist vorbereitet und lässt sich ändern. Dafür musst du angemeldet sein.
+      </p>
+      <figure class="part">
+        <img src="./help/de/note.png" alt="Formular für einen OSM-Hinweis mit vorbereitetem Text" loading="lazy" />
+      </figure>
+
+      <h3 id="confirm">Websites und Profile bestätigen</h3>
+      <p>Mit der Online-Prüfung „Websites und Profile bestätigen“ kommen auch gültige Links, die lange nicht geprüft wurden:</p>
+      <ol class="steps">
+        <li><strong>Im neuen Tab öffnen</strong> und ansehen: Gibt es die Seite noch, und gehört sie zu diesem Objekt?</li>
+        <li><strong>Geöffnet und geprüft</strong> (<kbd>Strg</kbd>+<kbd>Enter</kbd>) setzt <code>check_date:&lt;Tag&gt;</code> auf heute. Der Knopf ist erst nach dem Öffnen frei.</li>
+        <li>Stimmt etwas nicht, den Wert korrigieren, den Tag löschen oder „Gibt es nicht mehr …“ wählen.</li>
+      </ol>
+
+      <h2 id="upload">3. Hochladen</h2>
+      <figure class="part">
+        <img src="./help/de/upload.png" alt="Liste der Änderungen mit altem und neuem Wert, darunter der Changeset-Kommentar" loading="lazy" />
+      </figure>
+      <ol class="steps">
+        <li><strong>Weiter zum Hochladen</strong> zeigt alle vorgemerkten Änderungen, alter Wert durchgestrichen, neuer Wert grün. <strong>entfernen</strong> nimmt eine Änderung wieder heraus.</li>
+        <li>Den <strong>Changeset-Kommentar</strong> prüfen. Er wird aus den Änderungen erzeugt und lässt sich anpassen.</li>
+        <li><strong>Hochladen</strong>. Alle Änderungen gehen in ein Changeset, der Link dazu erscheint danach.</li>
+      </ol>
+      <p class="tip">
+        Vor dem Hochladen prüft osmCorrection, ob jemand die Objekte inzwischen geändert hat. Solche Konflikte werden
+        angezeigt und übersprungen, nichts wird überschrieben. Bis zum Hochladen bleiben die Änderungen in deinem
+        Browser gespeichert, auch wenn du die Seite schließt.
+      </p>
+
+      <h2 id="ai">KI-Unterstützung</h2>
+      <p>
+        Eine KI liest die Website eines Objekts und schlägt geänderte oder fehlende <strong>Öffnungszeiten,
+        Telefon, Fax, E-Mail und Profile in sozialen Netzen</strong> vor. Sie meldet auch Hinweise, dass ein Geschäft
+        geschlossen hat, umgezogen ist oder die Domain nicht mehr genutzt wird.
+      </p>
+      <ul>
+        <li>Jeder Vorschlag hat ein <strong>wörtliches Zitat</strong> und einen Link zur Quellseite. Steht das Zitat nicht auf der Seite, wird der Vorschlag verworfen.</li>
+        <li>Die KI macht nur Vorschläge: Du prüfst und übernimmst <strong>jeden einzeln</strong>.</li>
+        <li>Abgerufen wird nur die Website aus dem OSM-Tag, nie Facebook, Instagram, Google oder andere geschlossene Netze.</li>
+        <li>Übernommene Werte bekommen <code>source:&lt;Tag&gt;=website</code> und <code>check_date:&lt;Tag&gt;</code>. Das Changeset nennt die KI in <code>ai_assisted</code> und im Kommentar.</li>
+      </ul>
+      <p>Es gibt zwei Wege:</p>
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>Mit API-Schlüssel</th><th>Mit einem KI-Agenten</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Was du brauchst</th><td data-label="Mit API-Schlüssel">einen API-Schlüssel von Anthropic</td><td data-label="Mit einem KI-Agenten">einen KI-Agenten auf deinem Rechner, z. B. Claude Code mit Claude-Abo</td></tr>
+          <tr><th scope="row">Kosten</th><td data-label="Mit API-Schlüssel">pro Website, mit Claude Sonnet ca. 3 bis 8 US-Cent</td><td data-label="Mit einem KI-Agenten">aus deinem Abo-Kontingent</td></tr>
+          <tr><th scope="row">Ablauf</th><td data-label="Mit API-Schlüssel">pro Objekt auf Knopfdruck, direkt beim Prüfen</td><td data-label="Mit einem KI-Agenten">Auftrag exportieren, vom Agenten abarbeiten lassen, Ergebnis importieren</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="ai-key">Mit eigenem API-Schlüssel</h3>
+      <ol class="steps">
+        <li>In der <a href="https://platform.claude.com/settings/keys">Claude Console</a> einen API-Schlüssel erstellen, am besten einen eigenen nur für osmCorrection mit kurzer Laufzeit (1 bis 7 Tage).</li>
+        <li>In Schritt 1 unter „Online-Prüfungen“ <strong>Mit KI abgleichen</strong> ankreuzen.</li>
+        <li>Den Schlüssel bei <strong>KI-Unterstützung</strong> eintragen und das Modell wählen. Ohne „Schlüssel merken“ ist er nach dem Schließen des Tabs vergessen.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/ai-settings.png" alt="Einstellungen der KI-Unterstützung mit Feld für den API-Schlüssel und Auswahl des Modells" loading="lazy" />
+        <figcaption>Der Schlüssel bleibt in deinem Browser und geht nur an api.anthropic.com.</figcaption>
+      </figure>
+      <ol class="steps" start="4">
+        <li><strong>Herunterladen und prüfen</strong>. Jedes Objekt mit Website, dessen Öffnungszeiten lange nicht geprüft wurden, wird zu einem Fund.</li>
+        <li>Beim Fund <strong>Website mit KI auswerten</strong> klicken. Das dauert meist 20 bis 60 Sekunden und lässt sich abbrechen.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/ai-run.png" alt="Fund mit dem Knopf „Website mit KI auswerten“" loading="lazy" />
+      </figure>
+      <ol class="steps" start="6">
+        <li>Danach siehst du, wie viele Vorschläge es gibt, welche Seiten gelesen wurden, was verworfen wurde und was die Auswertung gekostet hat.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/ai-result.png" alt="Ergebnis: 3 Vorschläge, verbrauchte Token und Kosten, gelesene Seite" loading="lazy" />
+      </figure>
+      <ol class="steps" start="7">
+        <li>Mit <kbd>Enter</kbd> kommen die Vorschläge als nächste Funde, jeweils mit Zitat und Quelle. Das Zitat mit dem neuen Wert vergleichen, dann übernehmen oder überspringen.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/ai-proposal.png" alt="Vorschlag für neue Öffnungszeiten mit Zitat von der Website" loading="lazy" />
+      </figure>
+      <p>Haben mehrere Objekte dieselbe Website (z. B. Laden und Gebäude), wird sie nur einmal ausgewertet und bezahlt.</p>
+
+      <h3 id="ai-agent">Mit einem KI-Agenten (z. B. Claude Code)</h3>
+      <p>
+        Ein KI-Agent ist ein Programm auf deinem Rechner, das Befehle ausführen und Dateien schreiben kann, z. B.
+        <a href="https://claude.com/claude-code">Claude Code</a>, Kiro oder Codex CLI. Mit Claude Code läuft die
+        Auswertung über dein Claude-Abo statt über einen API-Schlüssel.
+      </p>
+      <ol class="steps">
+        <li>In Schritt 1 den Rahmen wählen und <strong>Auftrag für KI erstellen</strong> klicken. Der Browser speichert eine <code>auftrag.md</code> mit allen Objekten, deren Website ausgewertet werden kann. Bei vielen Objekten werden es mehrere Dateien.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/agent-export.png" alt="Knöpfe „Auftrag für KI erstellen“ und „Ergebnis der KI importieren“" loading="lazy" />
+      </figure>
+      <ol class="steps" start="2">
+        <li>Für jede Datei einen <strong>neuen, leeren Ordner</strong> anlegen und die Datei hineinlegen.</li>
+        <li>In diesem Ordner den Agenten starten, bei Claude Code mit <code>claude</code> im Terminal, und schreiben: <code>Arbeite auftrag.md ab</code></li>
+        <li>Der Agent holt die Objekte von OpenStreetMap, speichert die Websites im Unterordner <code>seiten/</code> und schreibt je Website eine Antwort nach <code>antworten/</code>. Ist das Kontingent erschöpft, später einfach erneut starten: Fertige Antworten werden übersprungen.</li>
+        <li>Zurück in osmCorrection <strong>Ergebnis der KI importieren …</strong> klicken und den Ordner wählen.</li>
+        <li>Bestätigen oder korrigieren, welche KI die Antworten geschrieben hat. Gefragt ist der <strong>Hersteller des Modells</strong>, nicht des Programms: Ein Claude-Modell in Kiro ist Anthropic. Das kommt in <code>ai_assisted</code> im Changeset.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/agent-import.png" alt="Abfrage von Hersteller und Modell der KI beim Import" loading="lazy" />
+      </figure>
+      <ol class="steps" start="7">
+        <li>osmCorrection lädt die Objekte frisch, prüft die Zitate gegen die gespeicherten Seiten und zeigt die Vorschläge wie oben zum Prüfen. Der Import funktioniert auch Tage später.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/de/agent-review.png" alt="Importierter Vorschlag mit Zitat und Angabe der KI" loading="lazy" />
+      </figure>
+      <p class="tip">
+        <strong>Sicherheit:</strong> Ein KI-Agent darf auf deinem Rechner Befehle ausführen. Nutze deshalb einen eigenen,
+        leeren Ordner und erlaube beim ersten Lauf jeden Abruf einzeln, dann siehst du, welche Adressen abgerufen
+        werden. Der Agent soll nur Seiten speichern und Antworten schreiben. Für den Abruf nutzt er einen Browser ohne
+        Fenster mit leerem Profil oder <code>curl</code>; eine Installation ist nicht nötig.
+      </p>
+
+      <h2 id="faq">Häufige Fragen</h2>
+      <h3>Wird sofort etwas in OpenStreetMap geändert?</h3>
+      <p>Nein. Übernommene Werte sind nur vorgemerkt. Erst „Hochladen“ in Schritt 3 schreibt sie in OpenStreetMap. Ausnahme: „Vor Ort prüfen …“ erstellt den Hinweis sofort.</p>
+      <h3>Ich habe aus Versehen etwas übernommen.</h3>
+      <p>Mit <kbd>Bild ↑</kbd> zum Fund zurückgehen und den Wert korrigieren, oder die Änderung in Schritt 3 mit „entfernen“ herausnehmen.</p>
+      <h3>„Kein Overpass-Server hat geantwortet“</h3>
+      <p>Die Server sind manchmal ausgelastet. Ein paar Minuten warten und erneut laden, oder einen kleineren Ausschnitt wählen.</p>
+      <h3>Keine Funde?</h3>
+      <p>Dann sind die gewählten Angaben im Rahmen in Ordnung. Weitere Prüfungen ankreuzen oder einen anderen Ausschnitt wählen.</p>
+      <h3>Welche Daten werden wohin geschickt?</h3>
+      <p>Das steht in der <a href="./datenschutz.html">Datenschutzerklärung</a>.</p>
+      <h3>Wo melde ich Fehler oder Ideen?</h3>
+      <p>Im <a href="https://github.com/cyper85/osmCorrection/issues">Issue-Tracker auf GitHub</a>.</p>
+
+      <p class="back"><a href="./">Zurück zu osmCorrection</a></p>
+      <footer class="site-links">
+        <a href="./impressum.html">Impressum</a> · <a href="./datenschutz.html">Datenschutz</a> ·
+        <a href="https://github.com/cyper85/osmCorrection">Quellcode</a>
+      </footer>
+    </main>
+  </body>
+</html>

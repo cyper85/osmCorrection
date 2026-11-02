@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Help · osmCorrection</title>
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" href="./logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/help.css" />
+  </head>
+  <body>
+    <!-- screenshots: public/help/en/, made by npm run screenshots -->
+    <main>
+      <header>
+        <a href="./"><img src="./logo.svg" alt="" width="28" height="28" /> osmCorrection</a>
+        <a class="language" href="./hilfe.html" hreflang="de" lang="de">Deutsch</a>
+      </header>
+
+      <h1>Help</h1>
+      <p>
+        osmCorrection finds faulty values in OpenStreetMap, such as phone numbers in the wrong format, broken
+        websites or duplicate tags, and suggests a correction. You look at each finding, decide yourself, and
+        upload the changes with your OSM account at the end. Everything runs in your browser.
+      </p>
+
+      <nav class="toc" aria-label="Contents">
+        <strong>Contents</strong>
+        <ol>
+          <li><a href="#start">Log in or just look around</a></li>
+          <li><a href="#select">Choose data</a></li>
+          <li><a href="#review">Review</a></li>
+          <li><a href="#upload">Upload</a></li>
+          <li><a href="#ai">AI assistance</a>: <a href="#ai-key">with an API key</a> or <a href="#ai-agent">with an AI agent</a></li>
+          <li><a href="#faq">Frequently asked questions</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="start">Log in or just look around</h2>
+      <figure class="part">
+        <img src="./help/en/login.png" alt="The start page with the buttons “Log in with OpenStreetMap” and “Look around without logging in”" loading="lazy" />
+      </figure>
+      <ul>
+        <li>
+          <strong>Log in with OpenStreetMap:</strong> You are sent to openstreetmap.org and allow osmCorrection to
+          upload changes and notes in your name. osmCorrection never sees your password.
+        </li>
+        <li>
+          <strong>Look around without logging in:</strong> You can try everything and work on findings. To upload,
+          you log in later; your changes are kept.
+        </li>
+      </ul>
+
+      <h2 id="select">1. Choose data</h2>
+      <figure>
+        <img src="./help/en/select.jpg" alt="On the left the choice of checks, on the right the map with the dashed frame" loading="lazy" />
+        <figcaption>The dashed frame in the middle of the map is loaded.</figcaption>
+      </figure>
+      <ol class="steps">
+        <li>Search for a place or move the map until the <strong>frame</strong> shows the area you want. It is at most 500 m × 500 m. If the map is zoomed out too far, loading is disabled.</li>
+        <li>Tick what should be <strong>checked</strong> (see below). The browser remembers your choice.</li>
+        <li>Click <strong>Download and check</strong>. The data comes from an Overpass server, which usually takes a few seconds.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/checks.png" alt="List of checks with checkboxes" loading="lazy" />
+      </figure>
+      <h3>The checks</h3>
+      <ul>
+        <li><strong>Phone and fax numbers, e-mail addresses, websites, Wikipedia, Wikidata:</strong> the format of the values, e.g. <code>0049 …</code> instead of <code>+49 …</code>, a missing <code>https://</code>, spaces in e-mail addresses.</li>
+        <li><strong>Social networks:</strong> links to profiles, chosen as a group or one by one (“choose individually”).</li>
+        <li><strong>Duplicate values:</strong> the same value in <code>website</code> and <code>contact:website</code> or similar pairs.</li>
+      </ul>
+      <p>The <strong>online checks</strong> also contact services or websites:</p>
+      <ul>
+        <li><strong>Check Wikidata references online:</strong> Does the Wikidata item still exist, and does the <code>wikipedia</code> tag match it?</li>
+        <li><strong>Check websites online:</strong> Your browser opens every website in the frame and reports whether it answers and whether it is also available via https.</li>
+        <li><strong>Confirm websites and profiles:</strong> Also shows valid links that have not been checked for a long time. You open and confirm them, see <a href="#confirm">Confirming</a>.</li>
+        <li><strong>Compare with AI:</strong> see <a href="#ai">AI assistance</a>.</li>
+      </ul>
+
+      <h2 id="review">2. Review</h2>
+      <figure>
+        <img src="./help/en/review.jpg" alt="A finding in the sidebar, on the right the map with the markers of the findings" loading="lazy" />
+        <figcaption>The current finding is marked red on the map. Clicking a marker jumps to that finding.</figcaption>
+      </figure>
+      <p>The findings come one after the other. For each you see the object (link to openstreetmap.org), the tag, the current value and the finding.</p>
+      <figure class="part">
+        <img src="./help/en/finding.png" alt="A finding: phone number with 0049, +49 is suggested" loading="lazy" />
+      </figure>
+      <ol class="steps">
+        <li>Check the <strong>new value</strong>. Usually a correction is already filled in; you can change it. Below it you see right away whether the value is valid.</li>
+        <li><strong>Apply</strong> keeps the change for later. Nothing is uploaded before step 3.</li>
+        <li><strong>Skip</strong> leaves the value as it is. <strong>Back</strong> goes to the previous finding.</li>
+        <li><strong>Delete tag</strong> removes the tag completely, e.g. a website that no longer exists.</li>
+      </ol>
+      <h3 id="keys">Keyboard</h3>
+      <table>
+        <tbody>
+          <tr><td><kbd>Enter</kbd></td><td>apply or next</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>checked (after opening, see <a href="#confirm">Confirming</a>)</td></tr>
+          <tr><td><kbd>Page ↓</kbd></td><td>skip</td></tr>
+          <tr><td><kbd>Page ↑</kbd></td><td>back</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>restore the old value, or close the form</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="closure">No longer exists …</h3>
+      <p>For shops or places that have closed. For each tag you decide whether it stays, is deleted or gets a prefix:</p>
+      <figure class="part">
+        <img src="./help/en/closure.png" alt="Form “No longer exists” with a choice for each tag" loading="lazy" />
+      </figure>
+      <ul>
+        <li><code>disused:</code> for empty shops, <code>was:</code> for anything that is gone completely.</li>
+        <li>Below you see which tags remain. A node without tags is deleted on upload if it is not part of a way or relation.</li>
+      </ul>
+
+      <h3 id="note">Check on site …</h3>
+      <p>
+        When something can only be settled on site: osmCorrection creates an
+        <a href="https://wiki.openstreetmap.org/wiki/Notes">OSM note</a> at the object. Mappers nearby see it on the map
+        and in StreetComplete. The text is prepared and can be changed. You need to be logged in for this.
+      </p>
+      <figure class="part">
+        <img src="./help/en/note.png" alt="Form for an OSM note with prepared text" loading="lazy" />
+      </figure>
+
+      <h3 id="confirm">Confirming websites and profiles</h3>
+      <p>With the online check “Confirm websites and profiles” you also get valid links that have not been checked for a long time:</p>
+      <ol class="steps">
+        <li><strong>Open in a new tab</strong> and look: Does the page still exist, and does it belong to this object?</li>
+        <li><strong>Opened and checked</strong> (<kbd>Ctrl</kbd>+<kbd>Enter</kbd>) sets <code>check_date:&lt;tag&gt;</code> to today. The button is enabled only after opening.</li>
+        <li>If something is wrong, correct the value, delete the tag or choose “No longer exists …”.</li>
+      </ol>
+
+      <h2 id="upload">3. Upload</h2>
+      <figure class="part">
+        <img src="./help/en/upload.png" alt="List of changes with old and new value, below it the changeset comment" loading="lazy" />
+      </figure>
+      <ol class="steps">
+        <li><strong>Continue to upload</strong> shows all kept changes, the old value struck through, the new one in green. <strong>remove</strong> takes a change out again.</li>
+        <li>Check the <strong>changeset comment</strong>. It is made from the changes and can be edited.</li>
+        <li><strong>Upload</strong>. All changes go into one changeset; its link appears afterwards.</li>
+      </ol>
+      <p class="tip">
+        Before uploading, osmCorrection checks whether someone has changed the objects in the meantime. Such conflicts
+        are shown and skipped; nothing is overwritten. Until the upload, the changes stay saved in your browser, even
+        if you close the page.
+      </p>
+
+      <h2 id="ai">AI assistance</h2>
+      <p>
+        An AI reads the website of an object and suggests changed or missing <strong>opening hours, phone, fax,
+        e-mail and social media profiles</strong>. It also reports signs that a shop has closed, has moved, or that
+        the domain is no longer used.
+      </p>
+      <ul>
+        <li>Every suggestion has a <strong>literal quote</strong> and a link to the source page. If the quote is not on the page, the suggestion is rejected.</li>
+        <li>The AI only makes suggestions: you check and apply <strong>each one</strong>.</li>
+        <li>Only the website from the OSM tag is fetched, never Facebook, Instagram, Google or other closed networks.</li>
+        <li>Applied values get <code>source:&lt;tag&gt;=website</code> and <code>check_date:&lt;tag&gt;</code>. The changeset names the AI in <code>ai_assisted</code> and in the comment.</li>
+      </ul>
+      <p>There are two ways:</p>
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>With an API key</th><th>With an AI agent</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">What you need</th><td data-label="With an API key">an API key from Anthropic</td><td data-label="With an AI agent">an AI agent on your computer, e.g. Claude Code with a Claude plan</td></tr>
+          <tr><th scope="row">Cost</th><td data-label="With an API key">per website, with Claude Sonnet about 3 to 8 US cents</td><td data-label="With an AI agent">from your plan’s usage limits</td></tr>
+          <tr><th scope="row">How</th><td data-label="With an API key">per object at the click of a button, right in the review</td><td data-label="With an AI agent">export a job, let the agent work through it, import the result</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="ai-key">With your own API key</h3>
+      <ol class="steps">
+        <li>Create an API key in the <a href="https://platform.claude.com/settings/keys">Claude Console</a>, ideally one only for osmCorrection with a short lifetime (1 to 7 days).</li>
+        <li>In step 1, tick <strong>Compare with AI</strong> under “Online checks”.</li>
+        <li>Enter the key under <strong>AI assistance</strong> and choose the model. Without “Remember the key” it is forgotten when you close the tab.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/ai-settings.png" alt="AI assistance settings with a field for the API key and a choice of model" loading="lazy" />
+        <figcaption>The key stays in your browser and is only sent to api.anthropic.com.</figcaption>
+      </figure>
+      <ol class="steps" start="4">
+        <li><strong>Download and check</strong>. Every object with a website whose opening hours have not been checked for a long time becomes a finding.</li>
+        <li>At the finding, click <strong>Analyze website with AI</strong>. It usually takes 20 to 60 seconds and can be cancelled.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/ai-run.png" alt="Finding with the button “Analyze website with AI”" loading="lazy" />
+      </figure>
+      <ol class="steps" start="6">
+        <li>Afterwards you see how many suggestions there are, which pages were read, what was rejected and what the analysis cost.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/ai-result.png" alt="Result: 3 suggestions, tokens used and cost, page read" loading="lazy" />
+      </figure>
+      <ol class="steps" start="7">
+        <li>With <kbd>Enter</kbd> the suggestions come as the next findings, each with quote and source. Compare the quote with the new value, then apply or skip.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/ai-proposal.png" alt="Suggestion for new opening hours with a quote from the website" loading="lazy" />
+      </figure>
+      <p>If several objects have the same website (e.g. shop and building), it is analyzed and paid for only once.</p>
+
+      <h3 id="ai-agent">With an AI agent (e.g. Claude Code)</h3>
+      <p>
+        An AI agent is a program on your computer that can run commands and write files, e.g.
+        <a href="https://claude.com/claude-code">Claude Code</a>, Kiro or Codex CLI. With Claude Code the analysis runs
+        on your Claude plan instead of an API key.
+      </p>
+      <ol class="steps">
+        <li>In step 1, choose the frame and click <strong>Create job for AI</strong>. The browser saves a <code>job.md</code> with all objects whose website can be analyzed. With many objects there are several files.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/agent-export.png" alt="Buttons “Create job for AI” and “Import the AI’s result”" loading="lazy" />
+      </figure>
+      <ol class="steps" start="2">
+        <li>For each file, create a <strong>new, empty folder</strong> and put the file into it.</li>
+        <li>Start the agent in this folder, for Claude Code with <code>claude</code> in the terminal, and write: <code>Work through job.md</code></li>
+        <li>The agent fetches the objects from OpenStreetMap, saves the websites in the subfolder <code>pages/</code> and writes one answer per website to <code>answers/</code>. If your usage limit is reached, simply start again later: finished answers are skipped.</li>
+        <li>Back in osmCorrection, click <strong>Import the AI’s result …</strong> and choose the folder.</li>
+        <li>Confirm or correct which AI wrote the answers. It asks for the <strong>maker of the model</strong>, not of the program: a Claude model in Kiro is Anthropic. This goes into <code>ai_assisted</code> in the changeset.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/agent-import.png" alt="Question about maker and model of the AI during the import" loading="lazy" />
+      </figure>
+      <ol class="steps" start="7">
+        <li>osmCorrection loads the objects fresh, checks the quotes against the saved pages and shows the suggestions for review as above. The import also works days later.</li>
+      </ol>
+      <figure class="part">
+        <img src="./help/en/agent-review.png" alt="Imported suggestion with quote and the AI named" loading="lazy" />
+      </figure>
+      <p class="tip">
+        <strong>Safety:</strong> An AI agent can run commands on your computer. So use a separate, empty folder and
+        allow each fetch one by one on the first run; then you see which addresses are fetched. The agent should only
+        save pages and write answers. For fetching it uses a browser without a window and with an empty profile, or
+        <code>curl</code>; nothing needs to be installed.
+      </p>
+
+      <h2 id="faq">Frequently asked questions</h2>
+      <h3>Is anything changed in OpenStreetMap right away?</h3>
+      <p>No. Applied values are only kept for later. Only “Upload” in step 3 writes them to OpenStreetMap. Exception: “Check on site …” creates the note right away.</p>
+      <h3>I applied something by mistake.</h3>
+      <p>Go back to the finding with <kbd>Page ↑</kbd> and correct the value, or take the change out in step 3 with “remove”.</p>
+      <h3>“No Overpass server answered”</h3>
+      <p>The servers are sometimes busy. Wait a few minutes and load again, or choose a smaller area.</p>
+      <h3>No findings?</h3>
+      <p>Then the chosen values in the frame are fine. Tick more checks or choose another area.</p>
+      <h3>Which data is sent where?</h3>
+      <p>See the <a href="./datenschutz.html">privacy policy</a> (in German).</p>
+      <h3>Where do I report bugs or ideas?</h3>
+      <p>In the <a href="https://github.com/cyper85/osmCorrection/issues">issue tracker on GitHub</a>.</p>
+
+      <p class="back"><a href="./">Back to osmCorrection</a></p>
+      <footer class="site-links">
+        <a href="./impressum.html" hreflang="de">Imprint</a> · <a href="./datenschutz.html" hreflang="de">Privacy</a> ·
+        <a href="https://github.com/cyper85/osmCorrection">Source code</a>
+      </footer>
+    </main>
+  </body>
+</html>

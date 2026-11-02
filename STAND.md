@@ -41,6 +41,7 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `i18n.ts`, `locales/` | Mehrsprachigkeit: `t(key, params)`, Texte in `locales/de.ts` (legt die Schlüssel fest) und `locales/en.ts`, siehe unten |
 | `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, dann nach Vorlage mit Plattformname, ersatzweise nach Code); auf Englisch bleibt der Originaltext |
 | `contact.ts` | setzt auf Impressum und Datenschutz die E-Mail-Adresse zusammen (steht nicht im HTML) |
+| `help.css` | Stil der Anleitung (`hilfe.html`, `help.html`), siehe unten |
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
@@ -334,12 +335,32 @@ Deutsch und Englisch, ohne Framework (`src/i18n.ts`):
   von OSM-Hinweisen und die Auftragsdatei für KI-Agenten (`auftrag.md` bzw.
   `job.md`, aus osmAssist). Der Import liest `antworten/` und `answers/`.
 - Impressum und Datenschutz bleiben deutsch.
+- Die Anleitung gibt es je Sprache als eigene Seite (`hilfe.html`,
+  `help.html`); welche die Links öffnen, steht in `app.helpPage`.
 - Die Tests laufen auf Deutsch (`test/setup.ts`), die Smoke-Tests mit
   `locale: 'de-DE'`.
 
 Neue Sprache: `src/locales/<code>.ts` als `Messages` anlegen, in
 `LANGUAGES` und `MESSAGES` (`i18n.ts`) eintragen; für die Auftragsdatei
-braucht osmAssist die Sprache ebenfalls (`JOB_FOLDERS`, `jobFile`).
+braucht osmAssist die Sprache ebenfalls (`JOB_FOLDERS`, `jobFile`). Für die
+Anleitung die Seite übersetzen (Eingang in `vite.config.ts`) und die
+Sprache in `scripts/screenshots.mjs` aufnehmen.
+
+## Anleitung
+
+`hilfe.html` (deutsch) und `help.html` (englisch): je ein Abschnitt für
+Anmelden, Auswählen, Prüfen, Hochladen und die beiden Wege der
+KI-Unterstützung, mit Klickanleitungen und Bildern. Die Abschnitte haben in
+beiden Sprachen dieselben Anker (`#start`, `#select`, `#review`, `#upload`,
+`#ai-key`, `#ai-agent` …). In der App verlinkt ein „?“ an jeder
+Schrittüberschrift (`data-help="<anker>"`, `setupHelpLinks()` in `main.ts`)
+auf den Abschnitt, in einem neuen Tab.
+
+Die Bilder in `public/help/<sprache>/` erzeugt `npm run screenshots`
+(Vorschau-Server wie bei den Smoke-Tests) mit erfundenen Läden am Markt in
+Ilmenau: Overpass, Nominatim, OSM-API und Anthropic-API sind nachgebaut, nur
+die Kartenkacheln kommen von openstreetmap.org. Was angeklickt werden soll,
+ist orange umrandet. Nach Änderungen an der Oberfläche neu erzeugen.
 
 ## Oberfläche
 

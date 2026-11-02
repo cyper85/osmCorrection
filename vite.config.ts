@@ -25,6 +25,8 @@ export default defineConfig({
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         impressum: fileURLToPath(new URL('./impressum.html', import.meta.url)),
         datenschutz: fileURLToPath(new URL('./datenschutz.html', import.meta.url)),
+        hilfe: fileURLToPath(new URL('./hilfe.html', import.meta.url)),
+        help: fileURLToPath(new URL('./help.html', import.meta.url)),
       },
     },
   },

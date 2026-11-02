@@ -1,0 +1,87 @@
+@import './legal.css';
+
+/* the help pages (hilfe.html, help.html): text with screenshots */
+
+header .language {
+  margin-left: auto;
+  font-size: 0.9em;
+}
+
+nav.toc ol {
+  padding-left: 1.3em;
+  margin: 0.4em 0 0;
+}
+
+nav.toc {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+h2 {
+  scroll-margin-top: 16px;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--border);
+}
+
+h3 {
+  scroll-margin-top: 16px;
+}
+
+figure {
+  margin: 1em 0 1.4em;
+}
+
+figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* the sidebar parts are narrow; do not blow them up */
+figure.part img {
+  max-width: min(100%, 420px);
+}
+
+figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+ol.steps > li {
+  margin-top: 0.5em;
+}
+
+kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: inherit;
+}
+
+.tip {
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+}
+
+.back {
+  margin-top: 2.5em;
+}
+
+/* the comparison of the two AI ways: each cell names its column on narrow screens */
+@media (max-width: 600px) {
+  table.compare th[scope='row'] {
+    padding: 4px 0 2px;
+  }
+  table.compare td::before {
+    content: attr(data-label) ': ';
+    color: var(--muted);
+  }
+}

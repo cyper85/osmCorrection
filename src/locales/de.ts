@@ -10,6 +10,10 @@ export const de = {
   'app.imprint': 'Impressum',
   'app.privacy': 'Datenschutz',
   'app.source': 'Quellcode',
+  'app.help': 'Anleitung',
+  'app.helpPage': 'hilfe.html',
+  'app.helpStep': 'Anleitung zu diesem Schritt',
+  'app.helpMore': 'Mehr dazu in der Anleitung',
   'app.languageReload': 'Die Sprache wird beim Neuladen der Seite gewechselt. Noch nicht hochgeladene Änderungen bleiben erhalten, die Prüfung beginnt neu.',
   'map.attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
 

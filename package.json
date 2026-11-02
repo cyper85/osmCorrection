@@ -21,7 +21,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:assist": "node scripts/smoke-assist.mjs"
+    "smoke:assist": "node scripts/smoke-assist.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
