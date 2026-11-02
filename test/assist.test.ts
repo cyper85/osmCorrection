@@ -10,7 +10,6 @@ import {
   statedAi,
 } from '../src/assist.js';
 import type { OsmElement } from '../src/osm.js';
-import { buildIdQuery } from '../src/overpass.js';
 
 function element(type: OsmElement['type'], id: number, tags: Record<string, string>): OsmElement {
   return { type, id, version: 1, tags };
@@ -68,14 +67,6 @@ describe('sameMeaning', () => {
     expect(same('opening_hours', 'Mo-Sa 08:00-20:00', 'Mo-Sa 07:00-20:00')).toBe(false);
     expect(same('opening_hours', 'kaputt', 'Mo-Sa 07:00-20:00')).toBe(false);
     expect(same('website', 'https://a.de/', 'https://a.de/')).toBe(false);
-  });
-});
-
-describe('buildIdQuery', () => {
-  it('asks for the elements by ID, with geometry', () => {
-    expect(buildIdQuery([{ type: 'node', id: 42 }, { type: 'way', id: 4711 }, { type: 'node', id: 42 }, { type: 'relation', id: 7 }])).toBe(
-      ['[out:json][timeout:90];', 'node(id:42);', 'out meta geom;', 'way(id:4711);', 'out meta geom;', 'rel(id:7);', 'out meta bb;'].join('\n'),
-    );
   });
 });
 

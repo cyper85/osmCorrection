@@ -46,9 +46,11 @@ import { SYNONYM_KEYS, synonymIssues } from './synonyms.js';
 import { MapView, MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M, type MarkerState } from './map.js';
 import { countryAt, search } from './nominatim.js';
 import { elementCenter, elementKey, elementLabel, osmUrl, type OsmElement } from './osm.js';
-import { applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
+import { API_URL, applyChanges, fetchCurrent, splitDeletions, upload } from './osmApi.js';
 import { createNote, noteFor, noteText, noteUrl, rememberNote } from './notes.js';
-import { buildIdQuery, buildQuery, download } from './overpass.js';
+import { buildQuery, download, type BBox, type DownloadOptions } from './overpass.js';
+import { downloadMap, fetchElements } from './osmMap.js';
+import { exportedElements, rememberExported } from './exportCache.js';
 import { fetchItems, referenceIssues, referencesToFetch, WIKIDATA_ONLINE } from './references.js';
 import {
   CHECK_INTERVAL_MONTHS,
@@ -139,9 +141,23 @@ function changeCount(count: number): string {
   return t('select.pendingCount', { count });
 }
 
-/** "Loading data from <host> …", with a note on the second round. */
-function loadingText(key: 'select.loadingFrom' | 'agent.loadingElementsFrom', url: string, round: number): string {
-  return t(key, { host: new URL(url).host }) + (round > 1 ? t('select.retry') : '');
+/**
+ * Download options for the frame: shows which server is asked, and loads from
+ * the OSM API if no Overpass server answers in the first round.
+ */
+function frameDownload(keyPatterns: string[], bbox: BBox, hint: HTMLElement): DownloadOptions {
+  return {
+    onAttempt: (url, round) => {
+      hint.textContent = t('select.loadingFrom', { host: new URL(url).host }) + (round > 1 ? t('select.retry') : '');
+    },
+    fallback: {
+      host: new URL(API_URL).host,
+      run: (signal) => downloadMap(bbox, keyPatterns, signal),
+      onStart: () => {
+        hint.textContent = t('select.loadingFallback');
+      },
+    },
+  };
 }
 
 // ---------------------------------------------------------------- step 1: select
@@ -340,12 +356,9 @@ async function startDownload(): Promise<void> {
       keyPatterns.push(SYNONYM_KEYS);
     }
     const center = mapView.center();
+    const bbox = mapView.bbox();
     const [downloaded, country] = await Promise.all([
-      download(buildQuery(keyPatterns, mapView.bbox()), {
-        onAttempt: (url, round) => {
-          hint.textContent = loadingText('select.loadingFrom', url, round);
-        },
-      }),
+      download(buildQuery(keyPatterns, bbox), frameDownload(keyPatterns, bbox, hint)),
       countryAt(center.lat, center.lon).catch(() => undefined),
     ]);
     fallbackCountry = country;
@@ -434,16 +447,17 @@ async function exportForClaudeCode(): Promise<void> {
   hint.hidden = false;
   hint.textContent = t('select.loading');
   try {
-    const elements = await download(buildQuery([ASSIST_ONLINE.keyPattern], mapView.bbox()), {
-      onAttempt: (url, round) => {
-        hint.textContent = loadingText('select.loadingFrom', url, round);
-      },
-    });
+    const keyPatterns = [ASSIST_ONLINE.keyPattern];
+    const bbox = mapView.bbox();
+    const elements = await download(buildQuery(keyPatterns, bbox), frameDownload(keyPatterns, bbox, hint));
     const jobs = exportJobs(elements);
     if (jobs.length === 0) {
       hint.textContent = t('agent.nothing', { months: CHECK_INTERVAL_MONTHS });
       return;
     }
+    // for the import, so it needs no download (for 24 hours)
+    const inJobs = new Set(jobs.flatMap((job) => job.elements.map(elementKey)));
+    rememberExported(elements.filter((element) => inJobs.has(elementKey(element))));
     const files = jobFiles(jobs, today());
     const base = JOB_FOLDERS[language()].file.replace(/\.md$/, '');
     const names = files.map((_, i) => (files.length === 1 ? `${base}.md` : `${base}-${i + 1}.md`));
@@ -520,12 +534,10 @@ async function importFromClaudeCode(folder: ImportedFolder, vendor: string, mode
   showError(undefined);
   try {
     const refs = folder.answers.flatMap((answer) => answer.elements);
+    // kept from the export; others (older than 24 hours, another browser) from the OSM API
+    const { found: kept, missing: toFetch } = exportedElements(refs);
     hint.textContent = t('agent.loadingElements');
-    const elements = await download(buildIdQuery(refs), {
-      onAttempt: (url, round) => {
-        hint.textContent = loadingText('agent.loadingElementsFrom', url, round);
-      },
-    });
+    const elements = [...kept, ...(toFetch.length > 0 ? await fetchElements(toFetch) : [])];
     const centers = elements.flatMap((element) => elementCenter(element) ?? []);
     const first = centers[0];
     fallbackCountry = first === undefined ? undefined : await countryAt(first.lat, first.lon).catch(() => undefined);

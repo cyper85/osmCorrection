@@ -179,9 +179,12 @@ unabhängig von den aktuellen Tags; der Abgleich passiert beim Import.
 - **Seiten in Text:** Der Browser wandelt jede HTML-Datei in Text um
   (`DOMParser`, ohne Skripte und Stile). Links bleiben mit ihrer Adresse im
   Text erhalten, damit Profile und E-Mail-Adressen prüfbar sind.
-- **Objekte frisch laden** von der OSM-API (`/api/0.6/nodes?nodes=…`, `ways`,
-  `relations`, ohne Login). Gelöschte Objekte werden gemeldet und
-  übersprungen. Der Import funktioniert deshalb auch Tage später.
+- **Objekte:** aus dem Zwischenspeicher des Exports (24 Stunden im Browser),
+  sonst frisch von der OSM-API (`/api/0.6/nodes.json?nodes=…`, `ways`,
+  `relations`, für die Geometrie die Punkte der Wege; ohne Login).
+  Gelöschte Objekte werden gemeldet und übersprungen. Der Import
+  funktioniert deshalb auch Tage später oder in einem anderen Browser.
+  Inzwischen geänderte Objekte fallen beim Hochladen als Konflikt auf.
 - **Prüfen und abgleichen** mit `assess` aus osmAssist, für jedes Objekt des
   Auftrags. Dieselben Regeln wie bei der direkten Auswertung: Zitat auf einer
   gespeicherten Seite, Quelle auf der Website, Links und Adressen auf der

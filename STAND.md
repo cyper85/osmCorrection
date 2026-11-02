@@ -249,8 +249,9 @@ Konzept: [docs/ki-claude-code.md](docs/ki-claude-code.md). Umgesetzt am
   unabhängig von den angehakten Prüfungen) und speichert sofort die
   Auftragsdateien, ohne Prüfschritt (gewünscht 2026-11-02; je Website und
   Adresse ein Auftrag, höchstens 15 je Datei); „Ergebnis aus Claude Code
-  importieren …“ in Schritt 1 (Ordnerauswahl, Objekte per Overpass nach ID
-  frisch geladen, `buildIdQuery`), Hinweis mit Zahl der Antworten, nicht
+  importieren …“ in Schritt 1 (Ordnerauswahl; die Objekte kommen aus dem
+  Zwischenspeicher des Exports, `exportCache.ts`, 24 Stunden lang, sonst
+  frisch von der OSM-API, `fetchElements` in `osmMap.ts`), Hinweis mit Zahl der Antworten, nicht
   mehr vorhandenen Objekten und unlesbaren Dateien. Die angehakten
   Prüfungen laufen für die importierten Objekte mit.
 - Herkunft (entschieden 2026-11-02): Die Antwortdatei hat das Pflichtfeld
@@ -313,6 +314,8 @@ in `src/selection.ts`.
 `version` in `package.json`, steht als `created_by` in jedem Changeset.
 1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet), 1.1.0 seit
 2026-11-02 (KI-Unterstützung, Impressum und Datenschutz, Mehrsprachigkeit).
+1.2.0 seit 2026-11-02 (Anleitung, Ersatz über die OSM-API, Zwischenspeicher
+für den KI-Import).
 Neue Funktionen erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
 
 ## Mehrsprachigkeit
@@ -388,6 +391,23 @@ nennen muss. `download()` fragt die Server der Reihe nach (overpass-api.de,
 private.coffee), jeweils mit 100 s Zeitlimit, und macht nach 5 s eine zweite
 Runde. Erst dann kommt eine Fehlermeldung, die für jeden Server den Grund
 nennt. Eine fehlerhafte Abfrage (z. B. 400) wird sofort gemeldet.
+
+**Ersatz über die OSM-API** (entschieden 2026-11-02, Variante „nach der
+ersten Runde“): Für den Rahmen (Herunterladen und Auftrag für KI) hat die
+erste Runde nur 30 s Zeitlimit je Server. Antwortet keiner, lädt
+`downloadMap()` (`src/osmMap.ts`) den Rahmen mit dem `map`-Aufruf der OSM-API
+(`/api/0.6/map.json?bbox=…`, alle Objekte ohne Filter) und wählt im Browser
+aus, was die Overpass-Abfrage geliefert hätte (`parseMap`: gleiche
+Key-Muster, Punkte im Rahmen, Wege und Relationen mit einem Punkt im Rahmen;
+Geometrie aus den Punkten, bei Relationen nur aus den mitgelieferten
+Mitgliedern). Der Nutzer sieht „Overpass ist nicht erreichbar, lade direkt
+von openstreetmap.org …“. Scheitert auch das, folgt die zweite
+Overpass-Runde (100 s). Erster Test am 2026-11-02: Overpass war gerade ganz
+ausgefallen, der Ersatz brauchte für den Rahmen am Markt in Ilmenau etwa
+5 s. Ein Abgleich der Auswahl mit Overpass steht noch aus.
+
+Der Import einer KI-Antwort fragt Overpass gar nicht mehr: Die Objekte
+kommen aus dem Export (24 Stunden im Browser) oder einzeln von der OSM-API.
 
 Lokal muss die Seite unter `127.0.0.1` laufen, nicht `localhost`: OSM erlaubt
 http-Redirect-URIs nur für 127.0.0.1. `main.ts` leitet `localhost` deshalb um.

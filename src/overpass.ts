@@ -19,6 +19,12 @@ const BUSY_STATUS = new Set([429, 502, 503, 504]);
 const REQUEST_TIMEOUT_MS = 100_000;
 
 /**
+ * With a fallback (the OSM API), the first round waits less: a small frame
+ * usually takes a few seconds, a server that hangs longer is likely overloaded.
+ */
+const FIRST_ROUND_TIMEOUT_MS = 30_000;
+
+/**
  * Pause before each round over all servers. "At capacity" usually passes
  * within seconds, so a second round often succeeds.
  */
@@ -50,29 +56,6 @@ export function buildQuery(keyPatterns: string[], bbox: BBox): string {
     `rel${filter};`,
     'out meta bb;',
   ].join('\n');
-}
-
-/**
- * Query for single elements by ID (e.g. the elements of an imported AI
- * result), with geometry like `buildQuery`.
- */
-export function buildIdQuery(refs: { type: ElementType; id: number }[]): string {
-  const ids = (type: ElementType) => [...new Set(refs.filter((r) => r.type === type).map((r) => r.id))];
-  const lines = ['[out:json][timeout:90];'];
-  for (const [type, short, out] of [
-    ['node', 'node', 'geom'],
-    ['way', 'way', 'geom'],
-    ['relation', 'rel', 'bb'],
-  ] as const) {
-    const list = ids(type);
-    if (list.length > 0) {
-      lines.push(`${short}(id:${list.join(',')});`, `out meta ${out};`);
-    }
-  }
-  if (lines.length === 1) {
-    throw new Error('no elements');
-  }
-  return lines.join('\n');
 }
 
 interface OverpassElement {
@@ -121,9 +104,21 @@ export interface DownloadOptions {
   signal?: AbortSignal;
   /** Called before each request, e.g. to show which server is asked. */
   onAttempt?: (url: string, round: number) => void;
+  /**
+   * Asked after the first round over all servers failed, before the second
+   * round (e.g. the OSM API). If it fails as well, the second round follows.
+   */
+  fallback?: {
+    /** for the error message, e.g. api.openstreetmap.org */
+    host: string;
+    run: (signal?: AbortSignal) => Promise<OsmElement[]>;
+    /** Called before the fallback is asked, e.g. to tell the user. */
+    onStart?: () => void;
+  };
   /** for tests */
   roundDelaysMs?: number[];
   timeoutMs?: number;
+  firstRoundTimeoutMs?: number;
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -143,17 +138,36 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 /**
  * Downloads from the first Overpass server that answers. Busy servers,
  * network errors and timeouts lead to the next server; a broken query (e.g.
- * HTTP 400) is reported at once.
+ * HTTP 400) is reported at once. After the first round the fallback is asked,
+ * if there is one.
  */
 export async function download(query: string, options: DownloadOptions = {}): Promise<OsmElement[]> {
-  const { signal, onAttempt, roundDelaysMs = ROUND_DELAYS_MS, timeoutMs = REQUEST_TIMEOUT_MS } = options;
+  const {
+    signal,
+    onAttempt,
+    fallback,
+    roundDelaysMs = ROUND_DELAYS_MS,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    firstRoundTimeoutMs = FIRST_ROUND_TIMEOUT_MS,
+  } = options;
   const errors: string[] = [];
   for (const [round, delay] of roundDelaysMs.entries()) {
+    if (round === 1 && fallback !== undefined) {
+      fallback.onStart?.();
+      try {
+        return await fallback.run(signal);
+      } catch (error) {
+        if (signal?.aborted) {
+          throw error;
+        }
+        errors.push(`${fallback.host}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
     await sleep(delay, signal);
     for (const url of OVERPASS_URLS) {
       const host = new URL(url).host;
       onAttempt?.(url, round + 1);
-      const timeout = AbortSignal.timeout(timeoutMs);
+      const timeout = AbortSignal.timeout(round === 0 && fallback !== undefined ? firstRoundTimeoutMs : timeoutMs);
       let response: Response;
       try {
         response = await fetch(url, {
