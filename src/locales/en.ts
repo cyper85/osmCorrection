@@ -171,6 +171,8 @@ export const en: Messages = {
   'assist.finding': 'Analyze website with AI: opening hours, phone, e-mail, linked profiles and signs of a closure.',
   'assist.missingBefore': 'Missing so far. According to the website:',
   'assist.changed': 'Changed according to the website:',
+  'assist.removeForMobile':
+    'According to the website this is a mobile number: {value} comes as a separate suggestion for {key}, and this tag is removed. This is only uploaded if {key} is applied as well.',
   'assist.together':
     'The mobile number {value} comes as a separate suggestion for {key}. This change is only uploaded if {key} is applied as well, otherwise the number would be lost.',
   'assist.noWebsite': 'The object has no website.',
@@ -181,6 +183,8 @@ export const en: Messages = {
   'assist.signal.moved': 'Moved according to the website. Use “Check on site …”?',
   'assist.signal.parked': 'The domain is parked or for sale. Delete the website or “Check on site …”?',
   'assist.signal.new_owner': 'The website now belongs to someone else. Delete the website or “Check on site …”?',
+  'assist.signal.other':
+    'Noticed by the AI: {note} Please open the website and decide yourself: skip, delete the tag, “No longer exists …” or “Check on site …”.',
   'assist.reject.unchanged': 'unchanged',
   'assist.reject.invalid': 'invalid',
   'assist.reject.quote_not_found': 'not found on the page',

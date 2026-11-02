@@ -235,8 +235,9 @@ Umgesetzt am 2026-11-01:
   Anthropic-Antwort (kostenlos, ohne Schlüssel).
 - Handynummern und WhatsApp (entschieden 2026-11-02, osmAssist
   1.0.0-alpha.3, osmValidation 1.0.0-alpha.3):
-  - Handynummern kommen nach `contact:mobile` (bzw. `mobile`, wenn das
-    Objekt `phone` nutzt). Neben dem, was die KI als `mobile` meldet,
+  - Handynummern kommen nach `contact:mobile` (`mobile` nur, wenn das Objekt
+    diesen Tag schon hat; korrigiert am 2026-11-03 nach der Auswertung in
+    Jena, vorher galt `mobile`, wenn das Objekt `phone` nutzte). Neben dem, was die KI als `mobile` meldet,
     verschiebt osmAssist Nummern mit sicherer Handy-Vorwahl (DE +49 15/16/17,
     AT +43 6, CH +41 75–79) dorthin.
   - Ein `phone`-Vorschlag, der eine Nummer weglässt, die als Handynummer
@@ -245,6 +246,21 @@ Umgesetzt am 2026-11-01:
     dass er beim Hochladen nur gilt, wenn `contact:mobile` die Nummer enthält
     (Vergleich über die Ziffern). Wird der Handy-Eintrag vor dem Hochladen
     entfernt, gehen der Telefon-Eintrag und alle `source:`/`check_date:` mit.
+  - Steht die Handynummer in `phone`/`contact:phone` und gibt es dafür keinen
+    eigenen Vorschlag, fügt osmAssist einen hinzu: `phone` ohne diese Nummer,
+    bzw. leer = Tag löschen („Löschen“ beim Fund), ebenfalls nur zusammen mit
+    `contact:mobile` (osmAssist 1.0.0-alpha.4).
+- Auffälligkeiten (gewünscht 2026-11-03 nach der Auswertung in Jena, wo der
+  Agent sie nur im Chat nannte): Hinweis-Typ `other` mit `note` (ein Satz,
+  in der Sprache der Auftragsdatei; per API vorerst Englisch), z. B.
+  Umleitung auf eine andere Domain, Filialen nur an anderen Orten, nur noch
+  fremde Inhalte, vorübergehend geschlossen, eine andere Website genannt,
+  ohne dass sie als neue Adresse bezeichnet ist. Unsicheres soll als
+  Auffälligkeit kommen, nicht als Wert. Wie alle Hinweise mit Zitat; bei
+  einer Umleitung vermerkt der Agent die Zieladresse als `final_url` in
+  `pages`, Zitate von dort gelten als von der Website. Der Fund zeigt den
+  Text, das Zitat und „Im neuen Tab öffnen“ für die Website (neu für alle
+  KI-Hinweise), der Nutzer entscheidet selbst.
   - WhatsApp nur, wenn das Zitat „WhatsApp“ oder einen wa.me-Link enthält:
     die Nummer, wenn sie eindeutig dasteht (Ziffern auf der Seite), sonst
     der Link (wa.me/<nutzername>, wa.me/message/…). osmValidation lässt Links
@@ -331,7 +347,9 @@ in `src/selection.ts`.
 1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet), 1.1.0 seit
 2026-11-02 (KI-Unterstützung, Impressum und Datenschutz, Mehrsprachigkeit).
 1.2.0 seit 2026-11-02 (Anleitung, Ersatz über die OSM-API, Zwischenspeicher
-für den KI-Import, Handynummern und WhatsApp aus der KI-Auswertung).
+für den KI-Import, Handynummern und WhatsApp aus der KI-Auswertung), 1.3.0
+seit 2026-11-03 (Auffälligkeiten der KI, `contact:mobile` als Standard,
+Handynummer aus `phone` entfernen).
 Neue Funktionen erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
 
 ## Mehrsprachigkeit

@@ -685,7 +685,7 @@ function showIssue(): void {
 /** „Übernehmen“ only if something changes, otherwise „Weiter“ (or „Löschen“ for a duplicate). */
 function acceptLabel(issue: Issue, value: string): string {
   const trimmed = value.trim();
-  if (issue.kind === 'duplicate' && trimmed === '') {
+  if ((issue.kind === 'duplicate' || isRemoval(issue)) && trimmed === '') {
     return t('review.delete');
   }
   // moving to website:menu changes the key, not the value
@@ -713,8 +713,8 @@ function checkInput(): void {
       hint.className = 'hint ok';
       return;
     }
-    hint.textContent = removed ? t('review.tagRemoved') : t('review.empty');
-    hint.className = removed ? 'hint' : 'hint bad';
+    hint.textContent = removed || isRemoval(issue) ? t('review.tagRemoved') : t('review.empty');
+    hint.className = removed || isRemoval(issue) ? 'hint' : 'hint bad';
     return;
   }
   const result = evaluate(issue.check, value, contextFor(issue));
@@ -747,10 +747,12 @@ function updateVerify(issue: Issue, value: string): void {
     issue.kind !== 'signal' &&
     issue.kind !== 'assist';
   const target = verifiable ? openableUrl(issue.key, value.trim()) : undefined;
+  // a signal of the AI: open the website to decide, without confirming it
+  const shown = target ?? (issue.kind === 'signal' ? openableUrl(issue.key, issue.value) : undefined);
   const open = $<HTMLAnchorElement>('issue-open');
-  $('issue-open-row').hidden = target === undefined;
-  if (target !== undefined) {
-    open.href = target;
+  $('issue-open-row').hidden = shown === undefined;
+  if (shown !== undefined) {
+    open.href = shown;
   }
   const verify = $<HTMLButtonElement>('verify');
   const hint = $('verify-hint');
@@ -765,12 +767,31 @@ function updateVerify(issue: Issue, value: string): void {
       : t('review.openFirst');
 }
 
+/** An AI suggestion to remove the tag, e.g. phone whose only number moves to contact:mobile. */
+function isRemoval(issue: Issue): boolean {
+  return issue.kind === 'proposal' && issue.suggestion === '';
+}
+
 function accept(verified: boolean): void {
   const issue = issues[current];
   if (issue === undefined) {
     return;
   }
   const value = $<HTMLInputElement>('issue-input').value.trim();
+  if (value === '' && isRemoval(issue) && issue.assist !== undefined) {
+    const together = issue.assist.together;
+    changes.set({
+      type: issue.element.type,
+      id: issue.element.id,
+      label: elementLabel(issue.element),
+      key: issue.key,
+      oldValue: issue.value,
+      ai: issue.assist.model,
+      ...(together === undefined ? {} : { requires: together }),
+    });
+    goTo(current + 1);
+    return;
+  }
   if (value === '' && issue.kind === 'duplicate' && !verified) {
     removeTag(changes, issue.element, issue.key, issue.duplicateOf);
     goTo(current + 1);

@@ -17,7 +17,6 @@ import {
   type Proposal,
   type RejectReason,
   type Signal,
-  type SignalKind,
   type SiteReading,
   type Compare,
   type Validate,
@@ -240,7 +239,7 @@ function validator(parser: OpeningHours, country: CountryCode | undefined): Vali
   };
 }
 
-const signalText = (kind: SignalKind) => t(`assist.signal.${kind}`);
+const signalText = (signal: Signal) => t(`assist.signal.${signal.kind}`, { note: signal.note ?? '' });
 
 export const rejectedText = (reason: RejectReason) => t(`assist.reject.${reason}`);
 
@@ -269,8 +268,10 @@ function proposalIssue(element: OsmElement, proposal: Proposal, check: Check, mo
     valid: true,
     suggestion: proposal.value,
     message:
-      (proposal.oldValue === undefined ? t('assist.missingBefore') : t('assist.changed')) +
-      (proposal.together === undefined ? '' : ` ${t('assist.together', proposal.together)}`),
+      proposal.value === '' && proposal.together !== undefined
+        ? t('assist.removeForMobile', proposal.together)
+        : (proposal.oldValue === undefined ? t('assist.missingBefore') : t('assist.changed')) +
+          (proposal.together === undefined ? '' : ` ${t('assist.together', proposal.together)}`),
     assist: {
       quote: proposal.quote,
       sourceUrl: proposal.sourceUrl,
@@ -292,7 +293,7 @@ function signalIssue(element: OsmElement, signal: Signal, model: string): Issue 
     check: SITE_CHECK,
     kind: 'signal',
     valid: true,
-    message: signalText(signal.kind),
+    message: signalText(signal),
     assist: { quote: signal.quote, sourceUrl: signal.sourceUrl, model },
   };
 }

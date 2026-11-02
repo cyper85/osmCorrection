@@ -173,6 +173,8 @@ export const de = {
   'assist.finding': 'Website mit KI auswerten: Öffnungszeiten, Telefon, E-Mail, verlinkte Profile und Hinweise auf eine Schließung.',
   'assist.missingBefore': 'Fehlt bisher. Laut Website:',
   'assist.changed': 'Laut Website geändert:',
+  'assist.removeForMobile':
+    'Laut Website ist das eine Handynummer: {value} kommt als eigener Vorschlag nach {key}, dieser Tag wird gelöscht. Hochgeladen wird das nur, wenn auch {key} übernommen ist.',
   'assist.together':
     'Die Handynummer {value} kommt als eigener Vorschlag für {key}. Diese Änderung wird nur hochgeladen, wenn auch {key} übernommen ist, sonst ginge die Nummer verloren.',
   'assist.noWebsite': 'Das Objekt hat keine Website.',
@@ -183,6 +185,8 @@ export const de = {
   'assist.signal.moved': 'Laut Website umgezogen. „Vor Ort prüfen …“ verwenden?',
   'assist.signal.parked': 'Die Domain ist geparkt oder steht zum Verkauf. Website löschen oder „Vor Ort prüfen …“?',
   'assist.signal.new_owner': 'Die Website gehört inzwischen jemand anderem. Website löschen oder „Vor Ort prüfen …“?',
+  'assist.signal.other':
+    'Auffälligkeit laut KI: {note} Bitte die Website öffnen und selbst entscheiden: überspringen, Tag löschen, „Gibt es nicht mehr …“ oder „Vor Ort prüfen …“.',
   'assist.reject.unchanged': 'unverändert',
   'assist.reject.invalid': 'ungültig',
   'assist.reject.quote_not_found': 'nicht auf der Seite gefunden',
