@@ -1,4 +1,5 @@
 import type { Bounds, ElementType, LatLon, OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 /**
  * Public Overpass instances that allow requests from other sites (CORS),
@@ -164,7 +165,7 @@ export async function download(query: string, options: DownloadOptions = {}): Pr
         if (signal?.aborted) {
           throw error;
         }
-        errors.push(`${host}: ${timeout.aborted ? 'keine Antwort' : 'nicht erreichbar'}`);
+        errors.push(`${host}: ${timeout.aborted ? t('overpass.noAnswer') : t('overpass.unreachable')}`);
         continue;
       }
       if (response.ok) {
@@ -174,8 +175,8 @@ export async function download(query: string, options: DownloadOptions = {}): Pr
       if (!BUSY_STATUS.has(response.status)) {
         throw new Error(`Overpass (${host}): ${detail}`);
       }
-      errors.push(`${host}: ausgelastet (HTTP ${response.status})`);
+      errors.push(`${host}: ${t('overpass.busy', { status: String(response.status) })}`);
     }
   }
-  throw new Error(`Kein Overpass-Server hat geantwortet, bitte später noch einmal versuchen. ${errors.join('; ')}`);
+  throw new Error(t('overpass.failed', { errors: errors.join('; ') }));
 }

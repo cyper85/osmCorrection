@@ -8,6 +8,7 @@
     <link rel="icon" href="./logo.svg" type="image/svg+xml" />
   </head>
   <body>
+    <!-- texts come from src/locales/*.ts (data-i18n…), filled in by main.ts -->
     <aside id="sidebar">
       <header>
         <img src="./logo.svg" alt="" width="32" height="32" />
@@ -15,107 +16,83 @@
       </header>
 
       <p id="user" class="user" hidden>
-        Angemeldet als <strong id="user-name"></strong>
-        <button type="button" id="logout" class="link">Abmelden</button>
+        <span data-i18n="user.loggedInAs"></span> <strong id="user-name"></strong>
+        <button type="button" id="logout" class="link" data-i18n="user.logout"></button>
       </p>
 
       <p id="error" class="error" role="alert" hidden></p>
 
       <section id="step-login">
-        <h2>Anmelden</h2>
-        <p>
-          Prüft und korrigiert Telefonnummern, E-Mail-Adressen, Websites und weitere
-          Angaben in OpenStreetMap. Jede Änderung bestätigst du einzeln, hochgeladen
-          wird mit deinem OSM-Konto.
-        </p>
+        <h2 data-i18n="login.title"></h2>
+        <p data-i18n="login.intro"></p>
         <div class="row">
-          <button type="button" id="login" class="primary">Mit OpenStreetMap anmelden</button>
-          <button type="button" id="guest">Ohne Anmeldung ansehen</button>
+          <button type="button" id="login" class="primary" data-i18n="login.button"></button>
+          <button type="button" id="guest" data-i18n="login.guest"></button>
         </div>
-        <p class="hint">Ohne Anmeldung kannst du prüfen, aber nicht hochladen.</p>
-        <p id="config-warning" class="error" hidden>
-          Keine OAuth-Client-ID konfiguriert (<code>VITE_OSM_CLIENT_ID</code> in <code>.env</code>).
-        </p>
+        <p class="hint" data-i18n="login.guestHint"></p>
+        <p id="config-warning" class="error" data-i18n-html="login.noClientId" hidden></p>
       </section>
 
       <section id="step-select" hidden>
-        <h2>1. Daten auswählen</h2>
+        <h2 data-i18n="select.title"></h2>
         <div id="pending" class="notice" hidden>
-          <p><strong id="pending-count"></strong> noch nicht hochgeladen.</p>
+          <p><strong id="pending-count"></strong> <span data-i18n="select.pendingSuffix"></span></p>
           <div class="row">
-            <button type="button" id="pending-upload" class="primary">Ansehen und hochladen</button>
-            <button type="button" id="pending-discard">Verwerfen</button>
+            <button type="button" id="pending-upload" class="primary" data-i18n="select.pendingUpload"></button>
+            <button type="button" id="pending-discard" data-i18n="select.pendingDiscard"></button>
           </div>
         </div>
         <form id="search-form" class="row">
-          <input type="search" id="search" placeholder="Ort suchen …" aria-label="Ort suchen" />
-          <button type="submit">Suchen</button>
+          <input type="search" id="search" data-i18n-placeholder="select.search" data-i18n-aria-label="select.search" />
+          <button type="submit" data-i18n="select.searchButton"></button>
         </form>
-        <p>
-          Schiebe die Karte so, dass der Rahmen in der Mitte das Gebiet zeigt, das du bearbeiten willst
-          (höchstens 500 m × 500 m), und wähle aus, was geprüft werden soll:
-        </p>
+        <p data-i18n="select.intro"></p>
         <fieldset id="checks"></fieldset>
         <fieldset id="online-checks">
-          <legend>Online-Prüfungen</legend>
+          <legend data-i18n="select.onlineChecks"></legend>
         </fieldset>
         <fieldset id="assist-settings" hidden>
-          <legend>KI-Unterstützung</legend>
-          <label for="ai-key">API-Schlüssel von Anthropic</label>
+          <legend data-i18n="ai.settings"></legend>
+          <label for="ai-key" data-i18n="ai.key"></label>
           <input type="password" id="ai-key" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" />
-          <label><input type="checkbox" id="ai-remember" /> Schlüssel in diesem Browser merken</label>
-          <label for="ai-model">Modell</label>
+          <label><input type="checkbox" id="ai-remember" /> <span data-i18n="ai.remember"></span></label>
+          <label for="ai-model" data-i18n="ai.model"></label>
           <select id="ai-model"></select>
           <p id="ai-cost" class="hint"></p>
-          <p class="hint">
-            Den Schlüssel erstellst du in der
-            <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">Claude Console</a>,
-            am besten einen eigenen nur für osmCorrection mit kurzer Laufzeit (1 bis 7 Tage). Er bleibt in deinem Browser
-            und geht nur an api.anthropic.com. Die Kosten trägst du selbst. Ausgewertet wird nur auf Knopfdruck, pro Objekt,
-            und jeder Vorschlag muss einzeln übernommen werden.
-          </p>
+          <p class="hint" data-i18n-html="ai.keyHint"></p>
         </fieldset>
         <div class="row">
-          <button type="button" id="download" class="primary">Herunterladen und prüfen</button>
-          <button type="button" id="export-claude" class="primary">Auftrag für KI erstellen</button>
+          <button type="button" id="download" class="primary" data-i18n="select.download"></button>
+          <button type="button" id="export-claude" class="primary" data-i18n="select.exportAi"></button>
         </div>
         <p id="download-hint" class="hint"></p>
         <fieldset id="claude-code">
-          <legend>Auswertung mit einem KI-Agenten</legend>
-          <p class="hint">
-            „Auftrag für KI erstellen“ lädt den Rahmen und speichert eine <code>auftrag.md</code> mit allen Objekten, deren
-            Website ausgewertet werden kann. Ein KI-Agent auf deinem Rechner arbeitet sie ab (z. B. Claude Code mit deinem
-            Claude-Abo), danach hier das Ergebnis importieren.
-          </p>
+          <legend data-i18n="agent.title"></legend>
+          <p class="hint" data-i18n-html="agent.intro"></p>
           <p id="export-hint" class="hint" hidden></p>
           <div class="row">
-            <button type="button" id="import-claude">Ergebnis der KI importieren …</button>
+            <button type="button" id="import-claude" data-i18n="agent.import"></button>
             <input type="file" id="import-folder" webkitdirectory multiple hidden />
           </div>
           <form id="import-confirm" class="notice" hidden>
             <p id="import-stated"></p>
-            <label for="import-vendor">Hersteller des KI-Modells (für <code>ai_assisted</code> im Changeset)</label>
+            <label for="import-vendor" data-i18n-html="agent.vendor"></label>
             <select id="import-vendor"></select>
-            <input id="import-vendor-other" placeholder="Hersteller" hidden />
-            <label for="import-model">Modell (leer lassen, wenn unbekannt)</label>
-            <input id="import-model" placeholder="z. B. claude-opus-5-5" autocomplete="off" spellcheck="false" />
-            <p class="hint">
-              Der Hersteller des Modells, nicht des Programms: Ein Claude-Modell in Kiro ist Anthropic.
-            </p>
+            <input id="import-vendor-other" data-i18n-placeholder="agent.vendorOther" hidden />
+            <label for="import-model" data-i18n="agent.modelLabel"></label>
+            <input id="import-model" data-i18n-placeholder="agent.modelPlaceholder" autocomplete="off" spellcheck="false" />
+            <p class="hint" data-i18n="agent.vendorHint"></p>
             <div class="row">
-              <button type="submit" id="import-confirm-ok" class="primary">Importieren</button>
-              <button type="button" id="import-confirm-cancel">Abbrechen</button>
+              <button type="submit" id="import-confirm-ok" class="primary" data-i18n="agent.importButton"></button>
+              <button type="button" id="import-confirm-cancel" data-i18n="agent.cancel"></button>
             </div>
           </form>
-          <p class="hint">
-            Den Arbeitsordner wählen, in dem der KI-Agent eine <code>auftrag.md</code> abgearbeitet hat. Die Objekte werden
-            frisch geladen, die Vorschläge kommen zur Prüfung wie bei der KI-Auswertung.
-          </p>
+          <p class="hint" data-i18n-html="agent.folderHint"></p>
         </fieldset>
       </section>
 
       <section id="step-review" hidden>
-        <h2>2. Prüfen</h2>
+        <h2 data-i18n="review.title"></h2>
         <p id="progress" class="hint"></p>
         <p id="review-notice" class="notice" hidden></p>
         <div id="issue">
@@ -123,11 +100,11 @@
             <a id="issue-link" target="_blank" rel="noopener"></a>
           </p>
           <dl>
-            <dt>Tag</dt>
+            <dt data-i18n="review.tag"></dt>
             <dd><code id="issue-key"></code></dd>
-            <dt>Aktueller Wert</dt>
+            <dt data-i18n="review.value"></dt>
             <dd><code id="issue-value"></code></dd>
-            <dt>Befund</dt>
+            <dt data-i18n="review.finding"></dt>
             <dd id="issue-message" class="message"></dd>
           </dl>
           <blockquote id="issue-quote" hidden>
@@ -136,102 +113,96 @@
           </blockquote>
           <div id="assist" class="notice" hidden>
             <div class="row">
-              <button type="button" id="assist-run" class="primary">Website mit KI auswerten</button>
-              <button type="button" id="assist-cancel" hidden>Abbrechen</button>
+              <button type="button" id="assist-run" class="primary"></button>
+              <button type="button" id="assist-cancel" data-i18n="assist.cancel" hidden></button>
             </div>
             <p id="assist-status" class="hint"></p>
             <ul id="assist-details" class="hint"></ul>
           </div>
           <form id="issue-form">
-            <label for="issue-input">Neuer Wert</label>
+            <label for="issue-input" data-i18n="review.newValue"></label>
             <input id="issue-input" autocomplete="off" spellcheck="false" />
             <p id="issue-check" class="hint"></p>
             <p id="issue-open-row" hidden>
-              <a id="issue-open" target="_blank" rel="noopener noreferrer">Im neuen Tab öffnen</a>
+              <a id="issue-open" target="_blank" rel="noopener noreferrer" data-i18n="review.openInTab"></a>
             </p>
             <div class="row">
-              <button type="submit" id="accept" class="primary">Übernehmen</button>
-              <button type="button" id="verify" class="primary">Geöffnet und geprüft</button>
-              <button type="button" id="skip">Überspringen</button>
-              <button type="button" id="back">Zurück</button>
+              <button type="submit" id="accept" class="primary"></button>
+              <button type="button" id="verify" class="primary" data-i18n="review.verify"></button>
+              <button type="button" id="skip" data-i18n="review.skip"></button>
+              <button type="button" id="back" data-i18n="review.back"></button>
             </div>
             <p id="verify-hint" class="hint" hidden></p>
             <div class="row">
-              <button type="button" id="remove-tag">Tag löschen</button>
-              <button type="button" id="close-open">Gibt es nicht mehr …</button>
-              <button type="button" id="note-open">Vor Ort prüfen …</button>
+              <button type="button" id="remove-tag" data-i18n="review.removeTag"></button>
+              <button type="button" id="close-open" data-i18n="review.closure"></button>
+              <button type="button" id="note-open" data-i18n="review.note"></button>
             </div>
             <p id="issue-note" class="hint" hidden></p>
           </form>
           <form id="note" class="notice" hidden>
-            <p>
-              <strong>Vor Ort prüfen:</strong> Erstellt einen
-              <a href="https://wiki.openstreetmap.org/wiki/DE:Notes" target="_blank" rel="noopener">OSM-Hinweis</a>
-              an diesem Objekt. Mapper vor Ort sehen ihn auf der Karte und in StreetComplete, die Daten bleiben unverändert.
-            </p>
-            <label for="note-text">Text des Hinweises</label>
+            <p data-i18n-html="note.intro"></p>
+            <label for="note-text" data-i18n="note.text"></label>
             <textarea id="note-text" rows="5"></textarea>
             <div class="row">
-              <button type="submit" id="note-create" class="primary">Hinweis erstellen</button>
-              <button type="button" id="note-cancel">Abbrechen</button>
+              <button type="submit" id="note-create" class="primary" data-i18n="note.create"></button>
+              <button type="button" id="note-cancel" data-i18n="note.cancel"></button>
             </div>
             <p id="note-status" class="hint"></p>
           </form>
           <form id="closure" class="notice" hidden>
-            <p><strong>Gibt es nicht mehr:</strong> Was soll mit den Tags passieren?</p>
+            <p data-i18n-html="closure.title"></p>
             <table id="closure-tags" class="tags"></table>
             <p id="closure-result" class="hint"></p>
             <div class="row">
-              <button type="submit" id="closure-apply" class="primary">Übernehmen</button>
-              <button type="button" id="closure-cancel">Abbrechen</button>
+              <button type="submit" id="closure-apply" class="primary" data-i18n="closure.apply"></button>
+              <button type="button" id="closure-cancel" data-i18n="closure.cancel"></button>
             </div>
-            <p class="hint">
-              disused: für leer stehende Läden, was: für alles, was ganz verschwunden ist. Die Tags des
-              Gebäudes bleiben stehen. Die anderen Funde dieses Objekts werden danach übersprungen.
-            </p>
+            <p class="hint" data-i18n="closure.hint"></p>
           </form>
-          <p class="hint keys">
-            <kbd>Enter</kbd> übernehmen bzw. weiter · <kbd>Strg</kbd>+<kbd>Enter</kbd> geprüft (nach dem Öffnen) ·
-            <kbd>Bild ↓</kbd> überspringen · <kbd>Bild ↑</kbd> zurück · <kbd>Esc</kbd> alten Wert wiederherstellen.
-            Marker auf der Karte anklicken, um direkt zu einem Fund zu springen.
-          </p>
+          <p class="hint keys" data-i18n-html="review.keys"></p>
         </div>
-        <p id="review-done" hidden>Alle Funde sind durchgesehen.</p>
-        <p id="no-issues" hidden>Keine Funde in diesem Ausschnitt.</p>
+        <p id="review-done" data-i18n="review.done" hidden></p>
+        <p id="no-issues" data-i18n="review.noIssues" hidden></p>
         <div class="row">
-          <button type="button" id="to-upload" class="primary">Weiter zum Hochladen</button>
-          <button type="button" id="restart">Neuer Ausschnitt</button>
+          <button type="button" id="to-upload" class="primary"></button>
+          <button type="button" id="restart" data-i18n="review.restart"></button>
         </div>
       </section>
 
       <section id="step-upload" hidden>
-        <h2>3. Hochladen</h2>
+        <h2 data-i18n="upload.title"></h2>
         <div id="upload-form">
-          <p>Diese Änderungen werden in einem Changeset hochgeladen:</p>
+          <p data-i18n="upload.intro"></p>
           <ul id="diff" class="diff"></ul>
-          <label for="comment">Changeset-Kommentar</label>
+          <label for="comment" data-i18n="upload.comment"></label>
           <textarea id="comment" rows="3" required></textarea>
           <p id="comment-count" class="hint"></p>
           <div class="row">
-            <button type="button" id="upload" class="primary">Hochladen</button>
-            <button type="button" id="upload-back">Zurück</button>
+            <button type="button" id="upload" class="primary" data-i18n="upload.button"></button>
+            <button type="button" id="upload-back" data-i18n="upload.back"></button>
           </div>
         </div>
         <p id="upload-status" class="hint"></p>
         <div id="upload-done" class="row" hidden>
-          <button type="button" id="upload-continue" class="primary">Weiter prüfen</button>
-          <button type="button" id="upload-restart">Neuer Ausschnitt</button>
+          <button type="button" id="upload-continue" class="primary" data-i18n="upload.continue"></button>
+          <button type="button" id="upload-restart" data-i18n="upload.restart"></button>
         </div>
         <p id="upload-login-box" hidden>
-          Zum Hochladen musst du angemeldet sein. Deine Änderungen bleiben dabei erhalten.
-          <button type="button" id="upload-login" class="primary">Mit OpenStreetMap anmelden</button>
+          <span data-i18n="upload.loginNeeded"></span>
+          <button type="button" id="upload-login" class="primary" data-i18n="login.button"></button>
         </p>
         <ul id="conflicts" class="diff conflicts"></ul>
       </section>
 
       <footer class="site-links">
-        <a href="./impressum.html">Impressum</a> · <a href="./datenschutz.html">Datenschutz</a> ·
-        <a href="https://github.com/cyper85/osmCorrection" target="_blank" rel="noopener">Quellcode</a>
+        <label>
+          <span data-i18n="app.language"></span>
+          <select id="language"></select>
+        </label>
+        ·
+        <a href="./impressum.html" data-i18n="app.imprint"></a> · <a href="./datenschutz.html" data-i18n="app.privacy"></a> ·
+        <a href="https://github.com/cyper85/osmCorrection" target="_blank" rel="noopener" data-i18n="app.source"></a>
       </footer>
     </aside>
     <main id="map"></main>

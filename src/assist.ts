@@ -26,6 +26,7 @@ import type { CountryCode } from 'osmvalidation';
 import { CHECKS, coversKey, evaluate, type Check, type Issue } from './checks.js';
 import type { OsmElement } from './osm.js';
 import { isRecentlyChecked } from './verification.js';
+import { language, t } from './i18n.js';
 
 /*
  * AI assistance (docs/ki-unterstuetzung.md): on request, Claude reads the
@@ -38,7 +39,7 @@ const SITE_KEYS = ['contact:website', 'website', 'url'];
 
 export const ASSIST_ONLINE = {
   id: 'ai-assist',
-  label: 'Mit KI abgleichen',
+  label: t('check.assist'),
   keyPattern: '^(contact:)?website$|^url$',
 } as const;
 
@@ -99,11 +100,16 @@ export function saveModel(id: string): void {
 export function costRange(model: string): string {
   const low = estimateCost(model, 10_000, 1_000);
   const high = estimateCost(model, 30_000, 2_000);
-  return low === undefined || high === undefined ? '' : `ca. ${dollars(low)} bis ${dollars(high)}`;
+  return low === undefined || high === undefined ? '' : t('ai.costRange', { low: dollars(low), high: dollars(high) });
 }
 
 export function dollars(amount: number): string {
-  return `${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: amount < 0.1 ? 3 : 2 })} $`;
+  return new Intl.NumberFormat(language(), {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: amount < 0.1 ? 3 : 2,
+  }).format(amount);
 }
 
 // ---------------------------------------------------------------- findings
@@ -131,7 +137,7 @@ export function assistIssues(elements: OsmElement[], now = new Date()): Issue[] 
         check: SITE_CHECK,
         kind: 'assist',
         valid: true,
-        message: 'Website mit KI auswerten: Öffnungszeiten, Telefon, E-Mail, verlinkte Profile und Hinweise auf eine Schließung.',
+        message: t('assist.finding'),
       },
     ];
   });
@@ -154,7 +160,7 @@ function checkOpeningHours(parser: OpeningHours, value: string) {
     return { valid: true, value: new parser(value, null, { mode: 0, tag_key: 'opening_hours' }).prettifyValue() };
   } catch (error) {
     const message = String(error).split('\n')[0] ?? '';
-    return { valid: false, value, message: `Ungültige Öffnungszeiten: ${message}` };
+    return { valid: false, value, message: t('assist.openingHoursInvalid', { message }) };
   }
 }
 
@@ -163,13 +169,13 @@ async function openingHoursCheck(): Promise<Check> {
   const parser = await loadOpeningHours();
   return {
     id: 'opening_hours',
-    label: 'Öffnungszeiten',
+    label: t('assist.openingHours'),
     keyPattern: '^opening_hours$',
     multiValue: false,
     validate: (value) => {
       const result = checkOpeningHours(parser, value);
       return result.valid
-        ? { valid: true, code: 'OK', message: 'Gültige Öffnungszeiten', ...(result.value === value ? {} : { suggestion: result.value }) }
+        ? { valid: true, code: 'OK', message: t('assist.openingHoursValid'), ...(result.value === value ? {} : { suggestion: result.value }) }
         : { valid: false, code: 'OPENING_HOURS_INVALID', message: result.message ?? '' };
     },
   };
@@ -234,46 +240,21 @@ function validator(parser: OpeningHours, country: CountryCode | undefined): Vali
   };
 }
 
-const SIGNALS: Record<SignalKind, string> = {
-  closed: 'Laut Website dauerhaft geschlossen. „Gibt es nicht mehr …“ verwenden?',
-  moved: 'Laut Website umgezogen. „Vor Ort prüfen …“ verwenden?',
-  parked: 'Die Domain ist geparkt oder steht zum Verkauf. Website löschen oder „Vor Ort prüfen …“?',
-  new_owner: 'Die Website gehört inzwischen jemand anderem. Website löschen oder „Vor Ort prüfen …“?',
-};
+const signalText = (kind: SignalKind) => t(`assist.signal.${kind}`);
 
-export const REJECTED: Record<RejectReason, string> = {
-  unchanged: 'unverändert',
-  invalid: 'ungültig',
-  quote_not_found: 'nicht auf der Seite gefunden',
-  foreign_source: 'Quelle von einer anderen Website',
-  unknown_key: 'unbekannter Tag',
-};
+export const rejectedText = (reason: RejectReason) => t(`assist.reject.${reason}`);
 
-const FETCH_ERRORS: Record<string, string> = {
-  url_not_allowed: 'gesperrt (z. B. robots.txt)',
-  url_not_accessible: 'nicht erreichbar',
-  unsupported_content_type: 'Inhalt nicht lesbar',
-  too_many_requests: 'zu viele Anfragen',
-  max_uses_exceeded: 'Seitenlimit erreicht',
-};
+const FETCH_ERRORS = ['url_not_allowed', 'url_not_accessible', 'unsupported_content_type', 'too_many_requests', 'max_uses_exceeded'] as const;
 
 export function fetchError(code: string): string {
-  return FETCH_ERRORS[code] ?? code;
+  const known = FETCH_ERRORS.find((c) => c === code);
+  return known === undefined ? code : t(`assist.fetch.${known}`);
 }
-
-const ERRORS: Record<AssistError['code'], string> = {
-  auth: 'Der API-Schlüssel wurde abgelehnt. Bitte in der Auswahl einen gültigen Schlüssel eintragen.',
-  rate_limit: 'Zu viele Anfragen an die KI, bitte etwas später erneut versuchen.',
-  refused: 'Die KI hat die Auswertung abgelehnt.',
-  incomplete: 'Die Antwort der KI ist unvollständig.',
-  invalid_response: 'Die Antwort der KI war nicht lesbar.',
-  api: 'Fehler bei der KI-Schnittstelle.',
-  aborted: 'Abgebrochen.',
-};
 
 export function errorText(error: unknown): string {
   if (error instanceof AssistError) {
-    return error.code === 'api' ? `${ERRORS.api} (${error.message})` : ERRORS[error.code];
+    const text = t(`assist.error.${error.code}`);
+    return error.code === 'api' ? `${text} (${error.message})` : text;
   }
   return error instanceof Error ? error.message : String(error);
 }
@@ -287,7 +268,7 @@ function proposalIssue(element: OsmElement, proposal: Proposal, check: Check, mo
     kind: 'proposal',
     valid: true,
     suggestion: proposal.value,
-    message: proposal.oldValue === undefined ? 'Fehlt bisher. Laut Website:' : 'Laut Website geändert:',
+    message: proposal.oldValue === undefined ? t('assist.missingBefore') : t('assist.changed'),
     assist: { quote: proposal.quote, sourceUrl: proposal.sourceUrl, model },
   };
 }
@@ -304,7 +285,7 @@ function signalIssue(element: OsmElement, signal: Signal, model: string): Issue 
     check: SITE_CHECK,
     kind: 'signal',
     valid: true,
-    message: SIGNALS[signal.kind],
+    message: signalText(signal.kind),
     assist: { quote: signal.quote, sourceUrl: signal.sourceUrl, model },
   };
 }
@@ -350,7 +331,7 @@ export async function analyze(
   const site = siteOf(element);
   const key = readingKey(element);
   if (site === undefined || key === undefined) {
-    throw new Error('Das Objekt hat keine Website.');
+    throw new Error(t('assist.noWebsite'));
   }
   const request: AssistRequest = {
     element: { type: element.type, id: element.id, tags: element.tags },
@@ -418,7 +399,12 @@ export function jobFiles(jobs: Job[], today: string, size = JOBS_PER_FILE): stri
     parts.push(jobs.slice(i, i + size));
   }
   return parts.map((part, index) =>
-    jobFile({ jobs: part, today, ...(parts.length > 1 ? { part: `Teil ${index + 1} von ${parts.length}` } : {}) }),
+    jobFile({
+      jobs: part,
+      today,
+      language: language(),
+      ...(parts.length > 1 ? { part: t('agent.part', { part: index + 1, parts: parts.length }) } : {}),
+    }),
   );
 }
 
@@ -474,7 +460,7 @@ export interface ImportedFolder {
   errors: string[];
 }
 
-/** Reads the working folder of Claude Code (antworten/*.json, seiten/*.html). */
+/** Reads the working folder of the AI agent (answers/*.json and pages/*.html, in German antworten/ and seiten/). */
 export async function readFolder(files: File[]): Promise<ImportedFolder> {
   // inside the chosen folder: "ordner/antworten/a1.json" → "antworten/a1.json"
   const path = (file: File) => folderPath(file.webkitRelativePath || file.name).replace(/^[^/]+\//, '');
@@ -483,13 +469,13 @@ export async function readFolder(files: File[]): Promise<ImportedFolder> {
   const errors: string[] = [];
   for (const file of files) {
     const name = path(file);
-    if (/^antworten\/[^/]+\.json$/i.test(name)) {
+    if (/^(antworten|answers)\/[^/]+\.json$/i.test(name)) {
       try {
         answers.push(parseAnswerFile(await file.text()));
       } catch (error) {
         errors.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
       }
-    } else if (/^seiten\/[^/]+\.html?$/i.test(name)) {
+    } else if (/^(seiten|pages)\/[^/]+\.html?$/i.test(name)) {
       pages.set(name, decodeHtml(new Uint8Array(await file.arrayBuffer())));
     }
   }

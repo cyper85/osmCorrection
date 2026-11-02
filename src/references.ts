@@ -1,6 +1,7 @@
 import { splitValues, wikidata, wikipedia } from 'osmvalidation';
 import { CHECKS, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 const BATCH_SIZE = 50;
@@ -9,7 +10,7 @@ const WIKIDATA_KEY = /^(.+:)?wikidata$/;
 /** Online check of the Wikidata references (not part of osmValidation, which works offline). */
 export const WIKIDATA_ONLINE = {
   id: 'wikidata-online',
-  label: 'Wikidata-Verweise online prüfen',
+  label: t('check.wikidataOnline'),
   keyPattern: WIKIDATA_KEY.source,
 } as const;
 
@@ -145,9 +146,9 @@ export function referenceIssues(elements: OsmElement[], items: Map<string, Wikid
       const parts = splitValues(value).map((part) => {
         const item = items.get(part);
         if (item?.missing) {
-          notes.push(`Das Wikidata-Objekt ${part} gibt es nicht (mehr)`);
+          notes.push(t('check.wikidataMissing', { id: part }));
         } else if (item !== undefined && item.id !== part) {
-          notes.push(`${part} ist eine Weiterleitung auf ${item.id}`);
+          notes.push(t('check.wikidataRedirect', { id: part, target: item.id }));
           redirected = true;
           return item.id;
         }
@@ -183,7 +184,7 @@ export function referenceIssues(elements: OsmElement[], items: Map<string, Wikid
         value: article,
         check: formatCheck('wikipedia'),
         valid: false,
-        message: `Das Wikidata-Objekt ${item.id} hat keinen Artikel in der Wikipedia „${language}“. Einer der beiden Verweise ist vermutlich falsch.`,
+        message: t('check.wikipediaMissing', { id: item.id, language }),
       });
     } else if (!sameTitle(title, linked)) {
       issues.push({
@@ -192,7 +193,7 @@ export function referenceIssues(elements: OsmElement[], items: Map<string, Wikid
         value: article,
         check: formatCheck('wikipedia'),
         valid: false,
-        message: `Passt nicht zu wikidata=${item.id}, dort ist „${language}:${linked}“ verknüpft. Der Artikel kann eine Weiterleitung sein, oder einer der beiden Verweise ist falsch.`,
+        message: t('check.wikipediaMismatch', { id: item.id, article: `${language}:${linked}` }),
         suggestion: `${language}:${linked}`,
       });
     }

@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { elementCenter, elementLabel, type OsmElement } from './osm.js';
 import type { BBox } from './overpass.js';
 import { intersect, MIN_DOWNLOAD_ZOOM, selectionBounds } from './selection.js';
+import { t } from './i18n.js';
 
 export { MIN_DOWNLOAD_ZOOM, SELECTION_SIZE_M } from './selection.js';
 
@@ -57,7 +58,7 @@ export class MapView {
     this.markers.addTo(this.map);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+      attribution: t('map.attribution'),
     }).addTo(this.map);
     this.highlight.addTo(this.map);
 

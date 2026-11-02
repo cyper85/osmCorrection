@@ -1,5 +1,6 @@
 import type { TagChange } from './changes.js';
 import { elementKey, type ElementRef, type ElementType } from './osm.js';
+import { t } from './i18n.js';
 
 export const API_URL = 'https://api.openstreetmap.org/api/0.6';
 
@@ -74,7 +75,7 @@ export function applyChanges(
     const key = elementKey(change);
     const element = modified.get(key) ?? current.get(key);
     if (element === undefined || element.visible === false) {
-      conflicts.push({ change, reason: 'Element wurde inzwischen gelöscht' });
+      conflicts.push({ change, reason: t('conflict.deleted') });
       continue;
     }
     const value = element.tags?.[change.key];
@@ -83,15 +84,15 @@ export function applyChanges(
         change,
         reason:
           value === undefined
-            ? 'Tag wurde inzwischen entfernt'
+            ? t('conflict.removed')
             : change.oldValue === undefined
-              ? `Tag wurde inzwischen gesetzt auf „${value}“`
-              : `Tag wurde inzwischen geändert auf „${value}“`,
+              ? t('conflict.set', { value })
+              : t('conflict.changed', { value }),
       });
       continue;
     }
     if (change.verifies !== undefined && element.tags?.[change.verifies.key] !== change.verifies.value) {
-      conflicts.push({ change, reason: `Der geprüfte Wert von ${change.verifies.key} wird nicht hochgeladen` });
+      conflicts.push({ change, reason: t('conflict.verified', { key: change.verifies.key }) });
       continue;
     }
     if (change.movedTo !== undefined && element.tags?.[change.movedTo.key] !== change.movedTo.value) {

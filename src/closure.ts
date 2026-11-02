@@ -1,5 +1,6 @@
 import { ChangeStore, type TagChange } from './changes.js';
 import { elementLabel, type OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 /*
  * Marking a shop or other feature as no longer existing: the user decides for
@@ -11,10 +12,10 @@ import { elementLabel, type OsmElement } from './osm.js';
 export type TagAction = 'keep' | 'delete' | 'disused' | 'was';
 
 export const TAG_ACTIONS: { action: TagAction; label: string }[] = [
-  { action: 'keep', label: 'behalten' },
-  { action: 'delete', label: 'löschen' },
-  { action: 'disused', label: 'disused: (leer stehend)' },
-  { action: 'was', label: 'was: (ehemals)' },
+  { action: 'keep', label: t('closure.keep') },
+  { action: 'delete', label: t('closure.delete') },
+  { action: 'disused', label: t('closure.disused') },
+  { action: 'was', label: t('closure.was') },
 ];
 
 const PREFIXES = ['disused', 'was'] as const;

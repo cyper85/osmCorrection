@@ -38,7 +38,9 @@ relevant, wenn jemand genau diesen Commit auscheckt.
 | `auth.ts` | `osm-auth` 3, OAuth 2 + PKCE im Single-Page-Modus (Redirect auf dieselbe Seite), Scopes `read_prefs write_api` |
 | `overpass.ts` | Abfrage für alle Key-Muster: `nw…; out meta geom; rel…; out meta bb;`, mehrere Server mit Zeitlimit und zweiter Runde (siehe unten) |
 | `checks.ts` | Formatprüfungen (`Check` mit `keyPattern` als POSIX-ERE, gilt in JS und Overpass), `findIssues`, Mehrfachwerte über `validateEach`; 20 soziale Netze mit `group: 'social'`, `verifiable` für Werte, die man öffnen und bestätigen kann |
-| `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, dann nach Vorlage mit Plattformname, ersatzweise nach Code) |
+| `i18n.ts`, `locales/` | Mehrsprachigkeit: `t(key, params)`, Texte in `locales/de.ts` (legt die Schlüssel fest) und `locales/en.ts`, siehe unten |
+| `messages.ts` | deutsche Texte zu osmValidation (nach englischem Text, dann nach Vorlage mit Plattformname, ersatzweise nach Code); auf Englisch bleibt der Originaltext |
+| `contact.ts` | setzt auf Impressum und Datenschutz die E-Mail-Adresse zusammen (steht nicht im HTML) |
 | `references.ts` | Online: Wikidata gelöscht/Weiterleitung, Abgleich `wikipedia` ↔ Sitelink |
 | `websites.ts` | Online: Website erreichbar? http auch per https? (siehe Grenzen unten) |
 | `verification.ts` | `check_date:<key>` für online prüfbare Werte, Modus „Websites und Profile bestätigen“, Prüfintervall |
@@ -308,8 +310,36 @@ in `src/selection.ts`.
 ## Versionen
 
 `version` in `package.json`, steht als `created_by` in jedem Changeset.
-1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet). Neue Funktionen
-erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
+1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet), 1.1.0 seit
+2026-11-02 (KI-Unterstützung, Impressum und Datenschutz, Mehrsprachigkeit).
+Neue Funktionen erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
+
+## Mehrsprachigkeit
+
+Deutsch und Englisch, ohne Framework (`src/i18n.ts`):
+
+- Texte in `src/locales/de.ts` und `en.ts`. Die deutsche Datei legt die
+  Schlüssel fest, jede weitere Sprache braucht genau dieselben (sonst
+  scheitert der Typcheck). Platzhalter `{name}`, Ein- und Mehrzahl als
+  `{ one, other }` (gewählt über `count` und `Intl.PluralRules`). Ein Test
+  prüft, dass alle Sprachen dieselben Platzhalter haben.
+- `index.html` enthält keine Texte, nur `data-i18n="schlüssel"` (Text),
+  `data-i18n-html` (Text mit Auszeichnung, nur aus den Sprachdateien) und
+  `data-i18n-<attribut>` (z. B. `placeholder`). `translatePage()` füllt sie
+  beim Start.
+- Sprache: gespeicherte Wahl (`osmCorrection.lang`), sonst die erste passende
+  Browsersprache, sonst Englisch. Umschalten im Fuß der Seitenleiste lädt die
+  Seite neu; noch nicht hochgeladene Änderungen bleiben erhalten.
+- In der Sprache der Oberfläche sind auch der Changeset-Kommentar, der Text
+  von OSM-Hinweisen und die Auftragsdatei für KI-Agenten (`auftrag.md` bzw.
+  `job.md`, aus osmAssist). Der Import liest `antworten/` und `answers/`.
+- Impressum und Datenschutz bleiben deutsch.
+- Die Tests laufen auf Deutsch (`test/setup.ts`), die Smoke-Tests mit
+  `locale: 'de-DE'`.
+
+Neue Sprache: `src/locales/<code>.ts` als `Messages` anlegen, in
+`LANGUAGES` und `MESSAGES` (`i18n.ts`) eintragen; für die Auftragsdatei
+braucht osmAssist die Sprache ebenfalls (`JOB_FOLDERS`, `jobFile`).
 
 ## Oberfläche
 

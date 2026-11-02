@@ -35,7 +35,7 @@ import {
   fetchError,
   keyRemembered,
   MODELS,
-  REJECTED,
+  rejectedText,
   saveApiKey,
   saveModel,
   selectedModel,
@@ -60,6 +60,8 @@ import {
   today,
 } from './verification.js';
 import { browserProbe, probeAll, WEBSITE_ONLINE, websiteIssues, websitesToProbe } from './websites.js';
+import { formatList, language, LANGUAGES, setLanguage, t, translatePage, type Lang } from './i18n.js';
+import { JOB_FOLDERS } from 'osmassist';
 import './style.css';
 
 const GENERATOR = `osmCorrection ${__APP_VERSION__}`;
@@ -134,7 +136,12 @@ async function refreshUser(): Promise<void> {
 }
 
 function changeCount(count: number): string {
-  return count === 1 ? '1 Änderung' : `${count} Änderungen`;
+  return t('select.pendingCount', { count });
+}
+
+/** "Loading data from <host> …", with a note on the second round. */
+function loadingText(key: 'select.loadingFrom' | 'agent.loadingElementsFrom', url: string, round: number): string {
+  return t(key, { host: new URL(url).host }) + (round > 1 ? t('select.retry') : '');
 }
 
 // ---------------------------------------------------------------- step 1: select
@@ -163,7 +170,7 @@ function socialGroup(selected: Set<string>): HTMLElement {
   const networks = CHECKS.filter((check) => check.group === 'social');
   const group = document.createElement('div');
   group.className = 'group';
-  const toggle = checkbox('', 'Soziale Netze', false);
+  const toggle = checkbox('', t('select.social'), false);
   toggle.querySelector('input')?.classList.add('group-toggle');
   const count = Object.assign(document.createElement('span'), { id: 'social-count', className: 'hint' });
   const expand = Object.assign(document.createElement('button'), { type: 'button', id: 'social-expand', className: 'link' });
@@ -191,8 +198,8 @@ function updateSocialGroup(): void {
     toggle.checked = chosen === boxes.length;
     toggle.indeterminate = chosen > 0 && chosen < boxes.length;
   }
-  $('social-count').textContent = `(${chosen} von ${boxes.length})`;
-  $('social-expand').textContent = $('social-items').hidden ? 'einzeln wählen' : 'einklappen';
+  $('social-count').textContent = t('select.socialCount', { chosen, total: boxes.length });
+  $('social-expand').textContent = $('social-items').hidden ? t('select.socialExpand') : t('select.socialCollapse');
 }
 
 function renderChecks(): void {
@@ -206,22 +213,13 @@ function renderChecks(): void {
   const hint = (text: string) => Object.assign(document.createElement('p'), { className: 'hint', textContent: text });
   $('online-checks').append(
     checkbox(WIKIDATA_ONLINE.id, WIKIDATA_ONLINE.label, selected.has(WIKIDATA_ONLINE.id)),
-    hint('Gibt es das Wikidata-Objekt noch, ist es eine Weiterleitung, und passt der wikipedia-Tag dazu?'),
+    hint(t('select.wikidataHint')),
     checkbox(WEBSITE_ONLINE.id, WEBSITE_ONLINE.label, selected.has(WEBSITE_ONLINE.id)),
-    hint(
-      'Antwortet der Server überhaupt, und gibt es http-Seiten auch per https? Fehlende Seiten (404) und ' +
-        'Weiterleitungen erkennt der Browser nicht. Jede Website im Ausschnitt wird dafür von deinem Browser aufgerufen.',
-    ),
+    hint(t('select.websiteHint')),
     checkbox(CONFIRM_ONLINE.id, CONFIRM_ONLINE.label, selected.has(CONFIRM_ONLINE.id)),
-    hint(
-      `Zeigt auch gültige Websites und Profile in sozialen Netzen, die seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft ` +
-        'wurden. Du öffnest sie selbst und bestätigst sie, dann wird check_date:<Tag> gesetzt.',
-    ),
+    hint(t('select.confirmHint', { months: CHECK_INTERVAL_MONTHS })),
     checkbox(ASSIST_ONLINE.id, ASSIST_ONLINE.label, selected.has(ASSIST_ONLINE.id)),
-    hint(
-      'Eine KI (Claude) liest auf Knopfdruck die Website eines Objekts und schlägt geänderte oder fehlende ' +
-        'Öffnungszeiten, Kontaktdaten und Profile vor, jeweils mit Zitat. Braucht einen eigenen API-Schlüssel.',
-    ),
+    hint(t('select.assistHint')),
   );
   setupAssistSettings();
   for (const id of ['checks', 'online-checks']) {
@@ -265,7 +263,7 @@ function setupAssistSettings(): void {
 function updateAssistSettings(): void {
   $('assist-settings').hidden = !onlineSelected(ASSIST_ONLINE.id);
   const cost = costRange(selectedModel());
-  $('ai-cost').textContent = cost === '' ? '' : `Eine Auswertung kostet ${cost} (je nach Umfang der Website).`;
+  $('ai-cost').textContent = cost === '' ? '' : t('ai.cost', { cost });
 }
 
 function selectedIds(): string[] {
@@ -293,13 +291,13 @@ function updateDownloadButton(): void {
   $<HTMLButtonElement>('export-claude').disabled = !mapView.canDownload();
   if (!mapView.canDownload()) {
     button.disabled = true;
-    hint.textContent = `Bitte weiter hineinzoomen (mindestens Zoomstufe ${MIN_DOWNLOAD_ZOOM}). Es lassen sich höchstens ${size} auf einmal laden.`;
+    hint.textContent = t('select.zoomIn', { zoom: MIN_DOWNLOAD_ZOOM, size });
   } else if (selectedIds().length === 0) {
     button.disabled = true;
-    hint.textContent = 'Bitte mindestens eine Prüfung auswählen.';
+    hint.textContent = t('select.chooseCheck');
   } else {
     button.disabled = false;
-    hint.textContent = `Geladen wird der Rahmen in der Kartenmitte, höchstens ${size}.`;
+    hint.textContent = t('select.frame', { size });
   }
 }
 
@@ -319,7 +317,7 @@ async function startDownload(): Promise<void> {
   const hint = $('download-hint');
   showError(undefined);
   button.disabled = true;
-  hint.textContent = 'Lade Daten von Overpass …';
+  hint.textContent = t('select.loading');
   try {
     const keyPatterns = checks.map((c) => c.keyPattern);
     if (wikidataOnline) {
@@ -345,7 +343,7 @@ async function startDownload(): Promise<void> {
     const [downloaded, country] = await Promise.all([
       download(buildQuery(keyPatterns, mapView.bbox()), {
         onAttempt: (url, round) => {
-          hint.textContent = `Lade Daten von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+          hint.textContent = loadingText('select.loadingFrom', url, round);
         },
       }),
       countryAt(center.lat, center.lon).catch(() => undefined),
@@ -366,16 +364,16 @@ async function startDownload(): Promise<void> {
     found = [...replaced, ...found.filter((issue) => !isReplaced(issue))];
 
     if (wikidataOnline) {
-      hint.textContent = 'Prüfe Wikidata …';
+      hint.textContent = t('select.checkingWikidata');
       const { ids, languages } = referencesToFetch(downloaded);
       const items = await fetchItems(ids, languages);
       found = found.concat(referenceIssues(downloaded, items, found));
     }
     if (websiteOnline) {
       const urls = websitesToProbe(downloaded);
-      hint.textContent = `Prüfe ${urls.length} Websites …`;
+      hint.textContent = t('select.checkingWebsites', { count: urls.length });
       const results = await probeAll(urls, browserProbe, (done, total) => {
-        hint.textContent = `Prüfe Websites … ${done} von ${total}`;
+        hint.textContent = t('select.checkingWebsitesProgress', { done, total });
       });
       found = found.concat(websiteIssues(downloaded, results, found));
     }
@@ -434,25 +432,23 @@ async function exportForClaudeCode(): Promise<void> {
   showError(undefined);
   button.disabled = true;
   hint.hidden = false;
-  hint.textContent = 'Lade Daten von Overpass …';
+  hint.textContent = t('select.loading');
   try {
     const elements = await download(buildQuery([ASSIST_ONLINE.keyPattern], mapView.bbox()), {
       onAttempt: (url, round) => {
-        hint.textContent = `Lade Daten von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+        hint.textContent = loadingText('select.loadingFrom', url, round);
       },
     });
     const jobs = exportJobs(elements);
     if (jobs.length === 0) {
-      hint.textContent = `Im Rahmen gibt es keine Objekte mit Website, deren Öffnungszeiten seit ${CHECK_INTERVAL_MONTHS} Monaten nicht geprüft wurden.`;
+      hint.textContent = t('agent.nothing', { months: CHECK_INTERVAL_MONTHS });
       return;
     }
     const files = jobFiles(jobs, today());
-    const names = files.map((_, i) => (files.length === 1 ? 'auftrag.md' : `auftrag-${i + 1}.md`));
+    const base = JOB_FOLDERS[language()].file.replace(/\.md$/, '');
+    const names = files.map((_, i) => (files.length === 1 ? `${base}.md` : `${base}-${i + 1}.md`));
     files.forEach((text, i) => saveFile(names[i]!, text));
-    hint.textContent =
-      `${jobs.length === 1 ? '1 Website' : `${jobs.length} Websites`} in ${names.join(', ')}. ` +
-      'Jede Datei in einen eigenen, leeren Ordner legen, dort den KI-Agenten (z. B. Claude Code) starten und „Arbeite ' +
-      `${files.length === 1 ? 'auftrag.md' : 'auftrag-1.md'} ab“ schreiben. Danach hier das Ergebnis importieren.`;
+    hint.textContent = `${t('agent.saved', { count: jobs.length, files: formatList(names) })} ${t('agent.savedHint', { file: names[0]! })}`;
   } catch (error) {
     showError(error);
     hint.hidden = true;
@@ -471,34 +467,32 @@ async function readImportFolder(files: File[]): Promise<void> {
   showError(undefined);
   $('import-confirm').hidden = true;
   try {
-    hint.textContent = 'Lese den Ordner …';
+    hint.textContent = t('agent.reading');
     const folder = await readFolder(files);
     if (folder.answers.length === 0) {
       throw new Error(
-        folder.errors.length > 0
-          ? `Keine lesbare Antwort im Ordner: ${folder.errors.join('; ')}`
-          : 'Im Ordner gibt es keine Antworten (antworten/*.json). Ist es der Ordner, in dem der KI-Agent gearbeitet hat?',
+        folder.errors.length > 0 ? t('agent.noReadable', { errors: folder.errors.join('; ') }) : t('agent.noAnswers'),
       );
     }
     hint.textContent = '';
     pendingImport = folder;
     const { vendors, models, descriptions, missing } = statedAi(folder);
-    const count = folder.answers.length === 1 ? '1 Antwort' : `${folder.answers.length} Antworten`;
+    const count = t('agent.answers', { count: folder.answers.length });
     $('import-stated').textContent =
-      `${count} gelesen. ` +
+      `${t('agent.read', { answers: count })} ` +
       (descriptions.length === 0
-        ? 'Sie nennen nicht, welche KI sie geschrieben hat.'
-        : `Laut den Antworten geschrieben von: ${descriptions.join('; ')}` +
-          (missing > 0 ? ` (${missing} ohne Angabe)` : '') +
-          (vendors.length > 1 ? '. Die Angaben sind unterschiedlich.' : '.')) +
-      ' Bitte bestätigen oder korrigieren.';
+        ? t('agent.notStated')
+        : t('agent.stated', { ai: descriptions.join('; ') }) +
+          (missing > 0 ? t('agent.statedMissing', { count: missing }) : '') +
+          (vendors.length > 1 ? t('agent.statedDiffer') : '.')) +
+      ` ${t('agent.confirm')}`;
     const select = $<HTMLSelectElement>('import-vendor');
     const stated = vendors.length === 1 ? vendors[0]! : undefined;
     const known = AI_VENDORS.find((v) => v.toLowerCase() === stated?.toLowerCase());
     select.replaceChildren(
-      new Option('bitte wählen', '__none__', false, stated === undefined),
+      new Option(t('agent.choose'), '__none__', false, stated === undefined),
       ...AI_VENDORS.map((v) => new Option(v, v, false, v === known)),
-      new Option('anderer …', OTHER_VENDOR, false, stated !== undefined && known === undefined),
+      new Option(t('agent.other'), OTHER_VENDOR, false, stated !== undefined && known === undefined),
     );
     const other = $<HTMLInputElement>('import-vendor-other');
     other.value = stated !== undefined && known === undefined ? stated : '';
@@ -526,16 +520,16 @@ async function importFromClaudeCode(folder: ImportedFolder, vendor: string, mode
   showError(undefined);
   try {
     const refs = folder.answers.flatMap((answer) => answer.elements);
-    hint.textContent = 'Lade die Objekte …';
+    hint.textContent = t('agent.loadingElements');
     const elements = await download(buildIdQuery(refs), {
       onAttempt: (url, round) => {
-        hint.textContent = `Lade die Objekte von ${new URL(url).host} …${round > 1 ? ' (neuer Versuch)' : ''}`;
+        hint.textContent = loadingText('agent.loadingElementsFrom', url, round);
       },
     });
     const centers = elements.flatMap((element) => elementCenter(element) ?? []);
     const first = centers[0];
     fallbackCountry = first === undefined ? undefined : await countryAt(first.lat, first.lon).catch(() => undefined);
-    hint.textContent = 'Prüfe die Vorschläge …';
+    hint.textContent = t('agent.checking');
     const found = await importFindings(
       folder,
       elements,
@@ -550,10 +544,13 @@ async function importFromClaudeCode(folder: ImportedFolder, vendor: string, mode
 
     const missing = refs.filter((ref) => !elements.some((e) => e.type === ref.type && e.id === ref.id));
     const notice = [
-      `${folder.answers.length === 1 ? '1 Antwort' : `${folder.answers.length} Antworten`} der KI importiert (${label}), ` +
-        `${found.length === 1 ? '1 Fund' : `${found.length} Funde`} der KI.`,
-      missing.length > 0 ? `Nicht mehr in OSM: ${missing.map((r) => `${r.type}/${r.id}`).join(', ')}.` : '',
-      folder.errors.length > 0 ? `Nicht lesbar: ${folder.errors.join('; ')}.` : '',
+      t('agent.imported', {
+        answers: t('agent.answers', { count: folder.answers.length }),
+        ai: label,
+        findings: t('agent.findings', { count: found.length }),
+      }),
+      missing.length > 0 ? t('agent.gone', { elements: missing.map((r) => `${r.type}/${r.id}`).join(', ') }) : '',
+      folder.errors.length > 0 ? t('agent.unreadable', { errors: folder.errors.join('; ') }) : '',
     ]
       .filter((line) => line !== '')
       .join(' ');
@@ -628,7 +625,8 @@ function showIssue(): void {
   $('issue').hidden = done;
   $('review-done').hidden = !done || issues.length === 0;
   $('back').toggleAttribute('disabled', current === 0);
-  $('progress').textContent = issues.length === 0 ? '' : `Fund ${Math.min(current + 1, issues.length)} von ${issues.length}`;
+  $('progress').textContent =
+    issues.length === 0 ? '' : t('review.progress', { current: Math.min(current + 1, issues.length), total: issues.length });
   updateChangeCount();
   refreshMarkers();
   if (done) {
@@ -640,7 +638,7 @@ function showIssue(): void {
   link.href = osmUrl(issue.element);
   link.textContent = elementLabel(issue.element);
   $('issue-key').textContent = issue.key;
-  $('issue-value').textContent = issue.value === '' ? '(fehlt)' : issue.value;
+  $('issue-value').textContent = issue.value === '' ? t('review.missing') : issue.value;
   $('issue-message').textContent = issue.message;
   showQuote(issue);
   showAssist(issue);
@@ -676,13 +674,13 @@ function showIssue(): void {
 function acceptLabel(issue: Issue, value: string): string {
   const trimmed = value.trim();
   if (issue.kind === 'duplicate' && trimmed === '') {
-    return 'Löschen';
+    return t('review.delete');
   }
   // moving to website:menu changes the key, not the value
   if (issue.kind === 'move') {
-    return 'Übernehmen';
+    return t('review.accept');
   }
-  return trimmed === issue.value ? 'Weiter' : 'Übernehmen';
+  return trimmed === issue.value ? t('review.next') : t('review.accept');
 }
 
 function checkInput(): void {
@@ -698,27 +696,24 @@ function checkInput(): void {
     const pending = changes.get(issue.element, issue.key);
     const removed = pending !== undefined && pending.newValue === undefined;
     if (issue.kind === 'duplicate') {
-      hint.textContent = removed
-        ? `${issue.key} wird gelöscht, der Wert bleibt in ${issue.duplicateOf}.`
-        : `„Löschen“ entfernt ${issue.key}, der Wert bleibt in ${issue.duplicateOf}.`;
+      const params = { key: issue.key, kept: issue.duplicateOf ?? '' };
+      hint.textContent = removed ? t('review.duplicateRemoved', params) : t('review.duplicateHint', params);
       hint.className = 'hint ok';
       return;
     }
-    hint.textContent = removed
-      ? 'Der Tag wird gelöscht. Einen Wert eingeben und übernehmen, um ihn doch zu behalten.'
-      : 'Der Wert darf nicht leer sein. Zum Entfernen „Tag löschen“ verwenden.';
+    hint.textContent = removed ? t('review.tagRemoved') : t('review.empty');
     hint.className = removed ? 'hint' : 'hint bad';
     return;
   }
   const result = evaluate(issue.check, value, contextFor(issue));
   if (!result.valid) {
-    hint.textContent = `Weiterhin ungültig: ${result.message}`;
+    hint.textContent = t('review.stillInvalid', { message: result.message });
     hint.className = 'hint bad';
   } else if (result.suggestion !== undefined && result.suggestion !== value) {
-    hint.textContent = `Gültig, bevorzugt wäre: ${result.suggestion}`;
+    hint.textContent = t('review.preferred', { suggestion: result.suggestion });
     hint.className = 'hint';
   } else {
-    hint.textContent = value === issue.value ? 'Gültig (unverändert).' : 'Gültig.';
+    hint.textContent = value === issue.value ? t('review.validUnchanged') : t('review.valid');
     hint.className = 'hint ok';
   }
 }
@@ -752,10 +747,10 @@ function updateVerify(issue: Issue, value: string): void {
   const ready = target !== undefined && openedValue === value.trim();
   verify.disabled = !ready;
   hint.textContent = ready
-    ? `Setzt ${checkDateKey(issue.key)}=${today()}.`
+    ? t('review.verifySets', { key: checkDateKey(issue.key), date: today() })
     : target === undefined
-      ? 'Dieser Wert lässt sich nicht öffnen.'
-      : 'Erst im neuen Tab öffnen und ansehen, dann bestätigen.';
+      ? t('review.notOpenable')
+      : t('review.openFirst');
 }
 
 function accept(verified: boolean): void {
@@ -823,10 +818,10 @@ let assistAbort: AbortController | undefined;
 function showQuote(issue: Issue): void {
   $('issue-quote').hidden = issue.assist === undefined;
   if (issue.assist !== undefined) {
-    $('issue-quote-text').textContent = `„${issue.assist.quote}“`;
+    $('issue-quote-text').textContent = language() === 'de' ? `„${issue.assist.quote}“` : `“${issue.assist.quote}”`;
     const link = $<HTMLAnchorElement>('issue-quote-link');
     link.href = issue.assist.sourceUrl;
-    link.textContent = `Quelle: ${issue.assist.sourceUrl} (ausgewertet von ${issue.assist.model})`;
+    link.textContent = t('assist.quoteSource', { url: issue.assist.sourceUrl, model: issue.assist.model });
   }
 }
 
@@ -848,7 +843,7 @@ function showAssist(issue: Issue): void {
   }
   const run = $<HTMLButtonElement>('assist-run');
   const done = assistRuns.get(elementKey(issue.element));
-  run.textContent = done === undefined ? 'Website mit KI auswerten' : 'Erneut auswerten';
+  run.textContent = done === undefined ? t('assist.run') : t('assist.rerun');
   $('assist-cancel').hidden = true;
   if (done !== undefined) {
     run.disabled = apiKey() === '';
@@ -860,30 +855,29 @@ function showAssist(issue: Issue): void {
   const cached = alreadyRead(issue.element);
   run.disabled = apiKey() === '' && !cached;
   $('assist-status').textContent = cached
-    ? 'Diese Website wurde schon ausgewertet (gleiche Adresse), das Ergebnis wird ohne weitere Kosten übernommen.'
+    ? t('assist.cached')
     : apiKey() === ''
-      ? 'Bitte unter „Neuer Ausschnitt“ bei der KI-Unterstützung einen API-Schlüssel eintragen.'
-      : `Kostet ${costRange(selectedModel())} (${MODELS.find((m) => m.id === selectedModel())?.label ?? ''}).`;
+      ? t('assist.needKey')
+      : t('assist.costs', { cost: costRange(selectedModel()), model: MODELS.find((m) => m.id === selectedModel())?.label ?? '' });
 }
 
 function showAssistResult(result: AssistResult, reused: boolean): void {
   const { proposals, signals, rejected, pages, usage, model } = result;
-  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   $('assist-status').textContent =
-    `${count(proposals.length, 'Vorschlag', 'Vorschläge')}, ${count(signals.length, 'Hinweis', 'Hinweise')}` +
-    (proposals.length + signals.length > 0 ? ', sie folgen als nächste Funde (Enter oder Bild ↓). ' : '. ') +
+    `${t('assist.proposals', { count: proposals.length })}, ${t('assist.signals', { count: signals.length })}` +
+    (proposals.length + signals.length > 0 ? t('assist.follow') : '. ') +
     (reused
-      ? `${model.name}, aus einer früheren Auswertung dieser Website, keine weiteren Kosten.`
-      : `${model.name}, ${usage.inputTokens + usage.outputTokens} Token` +
-        (usage.costUsd === undefined ? '.' : `, ca. ${dollars(usage.costUsd)}.`));
+      ? t('assist.reused', { model: model.name })
+      : t('assist.usage', { model: model.name, tokens: usage.inputTokens + usage.outputTokens }) +
+        (usage.costUsd === undefined ? '.' : t('assist.usageCost', { cost: dollars(usage.costUsd) })));
   const item = (text: string) => Object.assign(document.createElement('li'), { textContent: text });
   const unchanged = rejected.filter((r) => r.reason === 'unchanged').length;
   $('assist-details').replaceChildren(
-    ...pages.map((page) => item(`${page.url}: ${page.error === undefined ? 'gelesen' : fetchError(page.error)}`)),
+    ...pages.map((page) => item(`${page.url}: ${page.error === undefined ? t('assist.pageRead') : fetchError(page.error)}`)),
     ...rejected
       .filter((r) => r.reason !== 'unchanged')
-      .map((r) => item(`verworfen: ${r.proposal.key}=${r.proposal.value} (${REJECTED[r.reason]})`)),
-    ...(unchanged > 0 ? [item(`${count(unchanged, 'Angabe stimmt', 'Angaben stimmen')} mit OSM überein`)] : []),
+      .map((r) => item(t('assist.rejected', { key: r.proposal.key, value: r.proposal.value, reason: rejectedText(r.reason) }))),
+    ...(unchanged > 0 ? [item(t('assist.unchanged', { count: unchanged }))] : []),
   );
 }
 
@@ -915,7 +909,7 @@ async function runAssist(): Promise<void> {
   $<HTMLButtonElement>('assist-run').disabled = true;
   $('assist-cancel').hidden = false;
   $('assist-details').replaceChildren();
-  $('assist-status').textContent = 'Die KI liest die Website … (das dauert meist 20 bis 60 Sekunden)';
+  $('assist-status').textContent = t('assist.running');
   try {
     // „Erneut auswerten“ reads the website again
     const fresh = assistRuns.has(elementKey(issue.element));
@@ -1009,11 +1003,11 @@ function updateClosure(): void {
   const result = $('closure-result');
   apply.disabled = remaining.length === 0 && issue.element.type !== 'node';
   if (remaining.length > 0) {
-    result.textContent = `Danach: ${remaining.map(([k, v]) => `${k}=${v}`).join(', ')}`;
+    result.textContent = t('closure.after', { tags: remaining.map(([k, v]) => `${k}=${v}`).join(', ') });
   } else if (issue.element.type === 'node') {
-    result.textContent = 'Keine Tags mehr übrig: Der Punkt wird gelöscht, wenn er zu keinem Weg und keiner Relation gehört.';
+    result.textContent = t('closure.nodeDeleted');
   } else {
-    result.textContent = 'Mindestens ein Tag muss bleiben. Wege und Relationen lassen sich hier nicht löschen.';
+    result.textContent = t('closure.keepOne');
   }
 }
 
@@ -1044,8 +1038,13 @@ function showNoteLink(element: OsmElement): void {
   line.hidden = id === undefined;
   if (id !== undefined) {
     line.replaceChildren(
-      'Hinweis zum Prüfen vor Ort erstellt: ',
-      Object.assign(document.createElement('a'), { href: noteUrl(id), target: '_blank', rel: 'noopener', textContent: `Hinweis ${id}` }),
+      t('note.created'),
+      Object.assign(document.createElement('a'), {
+        href: noteUrl(id),
+        target: '_blank',
+        rel: 'noopener',
+        textContent: t('note.link', { id: String(id) }),
+      }),
     );
   }
 }
@@ -1058,7 +1057,7 @@ function openNote(): void {
   const loggedIn = auth.authenticated();
   $<HTMLTextAreaElement>('note-text').value = noteText(issue.element);
   $<HTMLButtonElement>('note-create').disabled = !loggedIn;
-  $('note-status').textContent = loggedIn ? '' : 'Zum Erstellen eines Hinweises musst du angemeldet sein.';
+  $('note-status').textContent = loggedIn ? '' : t('note.loginNeeded');
   $('issue-form').hidden = true;
   $('note').hidden = false;
   $('note-text').focus();
@@ -1073,11 +1072,11 @@ async function submitNote(): Promise<void> {
     return;
   }
   if (text === '') {
-    status.textContent = 'Bitte einen Text eingeben.';
+    status.textContent = t('note.empty');
     return;
   }
   button.disabled = true;
-  status.textContent = 'Erstelle Hinweis …';
+  status.textContent = t('note.creating');
   try {
     const id = await createNote(auth, issue.element, text);
     rememberNote(issue.element, id);
@@ -1095,7 +1094,7 @@ async function submitNote(): Promise<void> {
 function updateChangeCount(): void {
   const button = $<HTMLButtonElement>('to-upload');
   button.disabled = changes.size === 0;
-  button.textContent = `Weiter zum Hochladen (${changes.size})`;
+  button.textContent = t('review.toUpload', { count: changes.size });
 }
 
 function onReviewKey(event: KeyboardEvent): void {
@@ -1158,23 +1157,23 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
   link.textContent = change.label ?? elementKey(change);
   item.append(link, document.createElement('br'), code(change.key, ''), ': ');
   if (change.newValue === undefined) {
-    item.append(code(change.oldValue ?? '', 'old'), ' löschen');
+    item.append(code(change.oldValue ?? '', 'old'), t('diff.delete'));
     if (change.duplicateOf !== undefined) {
-      item.append(` (steht in ${change.duplicateOf})`);
+      item.append(t('diff.inKey', { key: change.duplicateOf }));
     }
     if (change.movedTo !== undefined) {
-      item.append(` (nach ${change.movedTo.key} verschoben)`);
+      item.append(t('diff.movedTo', { key: change.movedTo.key }));
     }
   } else if (change.oldValue === undefined) {
-    item.append('neu ', code(change.newValue, 'new'));
+    item.append(t('diff.new'), code(change.newValue, 'new'));
     if (change.movedFrom !== undefined) {
-      item.append(` (aus ${change.movedFrom})`);
+      item.append(t('diff.from', { key: change.movedFrom }));
     }
   } else {
     item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
   }
   if (change.ai !== undefined && change.verifies === undefined) {
-    item.append(` (Vorschlag von ${change.ai})`);
+    item.append(t('diff.suggestedBy', { ai: change.ai }));
   }
   for (const node of extra) {
     item.append(document.createElement('br'), node);
@@ -1216,12 +1215,12 @@ function renderDiff(): void {
       const extra: Node[] = [];
       if (change.deleteIfUnused === true && !deletionShown.has(elementKey(change))) {
         deletionShown.add(elementKey(change));
-        extra.push(document.createTextNode('Keine Tags mehr übrig: Der Punkt wird gelöscht, wenn er zu keinem Weg und keiner Relation gehört.'));
+        extra.push(document.createTextNode(t('closure.nodeDeleted')));
       }
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'link';
-      remove.textContent = change.closed === true ? '„existiert nicht mehr“ entfernen' : 'entfernen';
+      remove.textContent = change.closed === true ? t('diff.removeClosure') : t('diff.remove');
       remove.addEventListener('click', () => {
         discardChange(change);
         renderDiff();
@@ -1253,7 +1252,7 @@ function toUpload(): void {
 function updateCommentCount(): void {
   const length = commentLength($<HTMLTextAreaElement>('comment').value.trim());
   const count = $('comment-count');
-  count.textContent = `${length} von ${MAX_COMMENT} Zeichen`;
+  count.textContent = t('upload.commentCount', { length, max: MAX_COMMENT });
   count.className = length > MAX_COMMENT ? 'hint bad' : 'hint';
 }
 
@@ -1262,18 +1261,18 @@ async function startUpload(): Promise<void> {
   const status = $('upload-status');
   const button = $<HTMLButtonElement>('upload');
   if (comment === '') {
-    status.textContent = 'Bitte einen Changeset-Kommentar eingeben.';
+    status.textContent = t('upload.commentMissing');
     return;
   }
   if (commentLength(comment) > MAX_COMMENT) {
-    status.textContent = `Der Changeset-Kommentar ist zu lang (höchstens ${MAX_COMMENT} Zeichen), bitte kürzen.`;
+    status.textContent = t('upload.commentTooLong', { max: MAX_COMMENT });
     return;
   }
   showError(undefined);
   button.disabled = true;
   try {
     const list = changes.list();
-    status.textContent = 'Prüfe aktuelle Versionen …';
+    status.textContent = t('upload.checkingVersions');
     const latest = await fetchCurrent(list);
     const { modified, conflicts } = applyChanges(list, latest);
 
@@ -1284,16 +1283,16 @@ async function startUpload(): Promise<void> {
       changes.delete(change, change.key);
     }
     if (modified.length === 0) {
-      status.textContent = 'Nichts hochzuladen, alle Änderungen stehen im Konflikt.';
+      status.textContent = t('upload.allConflicts');
       renderDiff();
       return;
     }
 
     if (modified.some((el) => el.type === 'node' && Object.keys(el.tags ?? {}).length === 0)) {
-      status.textContent = 'Prüfe, ob leere Punkte noch zu Wegen oder Relationen gehören …';
+      status.textContent = t('upload.checkingNodes');
     }
     const { modify, remove } = await splitDeletions(modified);
-    status.textContent = `Lade ${modified.length} Elemente hoch …`;
+    status.textContent = t('upload.uploading', { count: modified.length });
     // source and ai_assisted only if AI suggestions are actually uploaded
     const applied = list.filter((change) => !conflicts.some((conflict) => conflict.change === change));
     const models = aiModels(applied);
@@ -1306,15 +1305,15 @@ async function startUpload(): Promise<void> {
     changes.clear();
     renderDiff();
     status.replaceChildren(
-      'Hochgeladen: ',
+      t('upload.done'),
       Object.assign(document.createElement('a'), {
         href: `https://www.openstreetmap.org/changeset/${changesetId}`,
         target: '_blank',
         rel: 'noopener',
-        textContent: `Changeset ${changesetId}`,
+        textContent: t('upload.changeset', { id: String(changesetId) }),
       }),
-      remove.length > 0 ? ` (${remove.length === 1 ? '1 Punkt' : `${remove.length} Punkte`} gelöscht)` : '',
-      conflicts.length > 0 ? ` (${conflicts.length} Konflikte übersprungen)` : '',
+      remove.length > 0 ? t('upload.nodesDeleted', { count: remove.length }) : '',
+      conflicts.length > 0 ? t('upload.conflictsSkipped', { count: conflicts.length }) : '',
     );
   } catch (error) {
     showError(error);
@@ -1343,7 +1342,7 @@ $('search-form').addEventListener('submit', (event) => {
   search(query)
     .then((place) => {
       if (place === undefined) {
-        showError('Ort nicht gefunden.');
+        showError(t('select.notFound'));
       } else {
         showError(undefined);
         mapView.fitBox(place.south, place.west, place.north, place.east);
@@ -1354,7 +1353,7 @@ $('search-form').addEventListener('submit', (event) => {
 
 $('pending-upload').addEventListener('click', toUpload);
 $('pending-discard').addEventListener('click', () => {
-  if (window.confirm(`${changeCount(changes.size)} verwerfen?`)) {
+  if (window.confirm(t('select.discardConfirm', { count: changes.size }))) {
     changes.clear();
     updatePending();
   }
@@ -1379,7 +1378,7 @@ $('import-confirm').addEventListener('submit', (event) => {
   event.preventDefault();
   const vendor = confirmedVendor();
   if (vendor === '' || vendor === '__none__' || pendingImport === undefined) {
-    $('download-hint').textContent = 'Bitte den Hersteller des KI-Modells angeben.';
+    $('download-hint').textContent = t('agent.vendorMissing');
     return;
   }
   const folder = pendingImport;
@@ -1458,7 +1457,27 @@ $('upload-back').addEventListener('click', backToReview);
 $('upload-continue').addEventListener('click', backToReview);
 $('upload-restart').addEventListener('click', restart);
 
+/** The language switch: reloads the page, the pending changes are kept in the browser. */
+function setupLanguage(): void {
+  const select = $<HTMLSelectElement>('language');
+  select.replaceChildren(
+    ...Object.entries(LANGUAGES).map(([code, name]) => new Option(name, code, false, code === language())),
+  );
+  select.addEventListener('change', () => {
+    if (step === 'review' || step === 'upload') {
+      if (!window.confirm(t('app.languageReload'))) {
+        select.value = language();
+        return;
+      }
+    }
+    setLanguage(select.value as Lang);
+    window.location.reload();
+  });
+}
+
 async function init(): Promise<void> {
+  translatePage();
+  setupLanguage();
   renderChecks();
   updateDownloadButton();
   $('config-warning').hidden = CLIENT_ID !== '';

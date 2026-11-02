@@ -1,6 +1,7 @@
 import { CHECKS, type Check, type Issue } from './checks.js';
 import { sameValue } from './duplicates.js';
 import type { OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 /*
  * Keys used instead of an established key, e.g. menu:url instead of
@@ -54,15 +55,15 @@ export function synonymIssues(elements: OsmElement[]): Issue[] {
             ...base,
             kind: 'move',
             moveTo: target,
-            message: `Statt ${key} ist ${target} üblich. Übernehmen verschiebt den Wert nach ${target}.`,
+            message: t('check.move', { key, target }),
           });
           kept = key;
         } else if (sameValue(check, value, keptValue)) {
-          issues.push({ ...base, kind: 'duplicate', duplicateOf: kept, message: `Doppelt: derselbe Wert steht in ${kept}.` });
+          issues.push({ ...base, kind: 'duplicate', duplicateOf: kept, message: t('check.duplicate', { key: kept }) });
         } else {
           issues.push({
             ...base,
-            message: `Statt ${key} ist ${target} üblich, aber ${kept} hat schon einen anderen Wert (${keptValue}). Löschen oder überspringen.`,
+            message: t('check.moveConflict', { key, target, kept, value: keptValue }),
           });
         }
       }

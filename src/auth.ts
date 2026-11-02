@@ -1,5 +1,6 @@
 import { osmAuth } from 'osm-auth';
 import { API_URL } from './osmApi.js';
+import { t } from './i18n.js';
 
 export const CLIENT_ID: string = import.meta.env.VITE_OSM_CLIENT_ID ?? '';
 
@@ -41,7 +42,7 @@ export async function handleRedirect(): Promise<boolean> {
   }
   try {
     if (params.has('error')) {
-      throw new Error(params.get('error_description') ?? params.get('error') ?? 'Login fehlgeschlagen');
+      throw new Error(params.get('error_description') ?? params.get('error') ?? t('login.failed'));
     }
     await authenticate();
     return true;

@@ -2,6 +2,7 @@ import { url as validateUrl } from 'osmvalidation';
 import { CHECKS, coversKey, WEBSITE_KEYS, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
 import { isRecentlyChecked } from './verification.js';
+import { t } from './i18n.js';
 
 /*
  * Without a server the browser can only make "no-cors" requests to other
@@ -20,7 +21,7 @@ const UNCHECKABLE_HOSTS = /(^|\.)(x\.com|twitter\.com|youtube\.com|youtu\.be)$/i
 
 export const WEBSITE_ONLINE = {
   id: 'website-online',
-  label: 'Websites online prüfen',
+  label: t('check.websiteOnline'),
   keyPattern: WEBSITE_KEYS,
 } as const;
 
@@ -146,7 +147,7 @@ export function websiteIssues(
           value,
           check: urlCheck(),
           valid: true,
-          message: 'Die Website ist auch verschlüsselt per https erreichbar. Bitte kurz prüfen, ob dort dieselbe Seite erscheint.',
+          message: t('check.httpsToo'),
           suggestion: target,
         });
       } else if (!isHttp && result !== 'reachable') {
@@ -158,8 +159,8 @@ export function websiteIssues(
           valid: false,
           message:
             result === 'timeout'
-              ? `Die Website antwortet nicht (keine Antwort innerhalb von ${TIMEOUT_MS / 1000} s). Bitte über den Link selbst prüfen.`
-              : 'Die Website ist möglicherweise nicht erreichbar: Domain unbekannt, Zertifikat ungültig oder Verbindung abgelehnt. Bitte über den Link selbst prüfen.',
+              ? t('check.timeout', { seconds: TIMEOUT_MS / 1000 })
+              : t('check.unreachable'),
         });
       }
     }

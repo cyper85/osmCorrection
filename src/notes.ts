@@ -1,6 +1,7 @@
 import { mainTag } from './closure.js';
 import { elementCenter, elementKey, elementLabel, osmUrl, type ElementRef, type OsmElement } from './osm.js';
 import { API_URL, type AuthFetch } from './osmApi.js';
+import { language, t } from './i18n.js';
 
 /*
  * OSM notes (https://wiki.openstreetmap.org/wiki/Notes) for objects that
@@ -12,11 +13,9 @@ const NOTE_STORAGE_KEY = 'osmCorrection.notes';
 
 export function noteText(element: OsmElement): string {
   const tag = mainTag(element.tags);
-  const what = tag === undefined ? `„${elementLabel(element)}“` : `„${elementLabel(element)}“ (${tag})`;
-  return (
-    `Gibt es ${what} noch? Bitte vor Ort prüfen und in OpenStreetMap aktualisieren.\n\n` +
-    `${osmUrl(element)}\n\n#osmCorrection`
-  );
+  const name = language() === 'de' ? `„${elementLabel(element)}“` : `“${elementLabel(element)}”`;
+  const what = tag === undefined ? name : `${name} (${tag})`;
+  return `${t('note.body', { what })}\n\n${osmUrl(element)}\n\n#osmCorrection`;
 }
 
 export function noteUrl(id: number): string {
@@ -27,14 +26,12 @@ export function noteUrl(id: number): string {
 export async function createNote(auth: AuthFetch, element: OsmElement, text: string): Promise<number> {
   const center = elementCenter(element);
   if (center === undefined) {
-    throw new Error('Für dieses Objekt ist keine Position bekannt.');
+    throw new Error(t('note.noPosition'));
   }
   const params = new URLSearchParams({ lat: center.lat.toFixed(7), lon: center.lon.toFixed(7), text });
   const response = await auth.fetch(`${API_URL}/notes.json?${params}`, { method: 'POST' });
   if (response.status === 403) {
-    throw new Error(
-      'Keine Berechtigung für Hinweise. Bitte einmal ab- und wieder anmelden, damit die neue Berechtigung erteilt wird.',
-    );
+    throw new Error(t('note.forbidden'));
   }
   if (!response.ok) {
     throw new Error(`OSM-API: HTTP ${response.status} ${await response.text()}`);
@@ -42,7 +39,7 @@ export async function createNote(auth: AuthFetch, element: OsmElement, text: str
   const data = (await response.json()) as { properties?: { id?: unknown } };
   const id = data.properties?.id;
   if (typeof id !== 'number') {
-    throw new Error('OSM-API: keine Hinweis-ID erhalten');
+    throw new Error(t('note.noId'));
   }
   return id;
 }

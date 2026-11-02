@@ -1,5 +1,6 @@
 import { CHECKS, coversKey, evaluate, type Check, type CheckContext, type Issue } from './checks.js';
 import type { OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 /*
  * The same value under `website` and `contact:website` (or `phone` and
@@ -8,7 +9,7 @@ import type { OsmElement } from './osm.js';
 
 export const DUPLICATES = {
   id: 'duplicates',
-  label: 'Doppelte Angaben (z. B. website und contact:website)',
+  label: t('check.duplicates'),
   keyPattern: '^contact:',
 } as const;
 
@@ -75,8 +76,8 @@ export function duplicateIssues(elements: OsmElement[], contextOf: (element: Osm
         valid: false,
         message:
           value === contactValue
-            ? `Doppelt: derselbe Wert steht in ${contactKey}.`
-            : `Doppelt: derselbe Wert steht in ${contactKey} (${contactValue}).`,
+            ? t('check.duplicate', { key: contactKey })
+            : t('check.duplicateFormatted', { key: contactKey, value: contactValue }),
       });
     }
   }

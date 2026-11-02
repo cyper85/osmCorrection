@@ -15,7 +15,8 @@ const [lat, lon, zoom] = (process.env.VIEW ?? '50.6815,10.9333,16').split(',').m
 const channel = process.env.BROWSER === 'chrome' ? 'chrome' : 'msedge';
 
 const browser = await chromium.launch({ channel, headless: process.env.HEADED === undefined });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+// the checks below look for the German texts
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: 'de-DE' });
 const pageErrors = [];
 page.on('pageerror', (error) => pageErrors.push(error.message));
 

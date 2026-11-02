@@ -28,8 +28,9 @@ import {
   type CountryCode,
   type ValidationResult,
 } from 'osmvalidation';
-import { germanMessage } from './messages.js';
+import { localMessage } from './messages.js';
 import type { OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 export interface CheckContext {
   /** ISO 3166-1 alpha-2 code of the country the element is in */
@@ -91,21 +92,21 @@ function social(
 export const CHECKS: Check[] = [
   {
     id: 'phone',
-    label: 'Telefon- und Faxnummern',
+    label: t('check.phone'),
     keyPattern: '^(contact:)?(phone|fax|mobile)$',
     multiValue: true,
     validate: (value, { country }) => (country === undefined ? phone(value) : phone(value, { country })),
   },
   {
     id: 'mail',
-    label: 'E-Mail-Adressen',
+    label: t('check.mail'),
     keyPattern: '^(contact:)?email$',
     multiValue: true,
     validate: (value) => mail(value),
   },
   {
     id: 'url',
-    label: 'Websites',
+    label: t('check.url'),
     keyPattern: WEBSITE_KEYS,
     excludeKeys: NOT_WEBSITE_KEYS,
     multiValue: false,
@@ -185,7 +186,7 @@ export function evaluate(check: Check, value: string, context: CheckContext): Ev
       // e.g. a country code libphonenumber does not know
       result = check.validate(part, {});
     }
-    return { ...result, message: germanMessage(result) };
+    return { ...result, message: localMessage(result) };
   };
 
   if (!check.multiValue) {
@@ -197,7 +198,7 @@ export function evaluate(check: Check, value: string, context: CheckContext): Ev
   const notes = multi.results
     .filter(({ result }) => !result.valid || result.suggestion !== undefined)
     .map(({ value: part, result }) => `${part}: ${result.message}`);
-  const message = notes.length > 0 ? notes.join('\n') : 'Wert enthält leere Teile („;;“ oder „;“ am Ende)';
+  const message = notes.length > 0 ? notes.join('\n') : t('check.emptyParts');
   return multi.suggestion === undefined
     ? { valid: multi.valid, message }
     : { valid: multi.valid, message, suggestion: multi.suggestion };

@@ -1,6 +1,7 @@
 import { facebookUrl, twitterUrl } from 'osmvalidation';
 import { CHECKS, coversKey, evaluate, type Check, type Issue } from './checks.js';
 import { elementKey, type OsmElement } from './osm.js';
+import { t } from './i18n.js';
 
 /*
  * Values the user can verify by opening them in the browser get a
@@ -14,7 +15,7 @@ const VERIFIABLE = CHECKS.filter((check) => check.verifiable === true);
 
 export const CONFIRM_ONLINE = {
   id: 'confirm-online',
-  label: 'Websites und Profile bestätigen',
+  label: t('check.confirmOnline'),
   keyPattern: VERIFIABLE.map((check) => check.keyPattern).join('|'),
 } as const;
 
@@ -142,8 +143,7 @@ export function confirmIssues(elements: OsmElement[], existing: Issue[], now = n
         valid: true,
         kind: 'confirm',
         message:
-          (last === undefined ? 'Noch nie online geprüft.' : `Zuletzt geprüft: ${last}.`) +
-          ' Bitte öffnen und prüfen, ob die Seite noch existiert und zu diesem Objekt gehört.',
+          (last === undefined ? t('check.neverChecked') : t('check.lastChecked', { date: last })) + t('check.pleaseOpen'),
       });
     }
   }

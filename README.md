@@ -15,6 +15,11 @@ als ein Changeset hochladen. Vor dem Hochladen wird die aktuelle Version jedes
 Elements von der OSM-API geholt. Wurde ein Tag inzwischen von jemand anderem
 geändert, wird diese Änderung als Konflikt übersprungen.
 
+Die Oberfläche gibt es auf Deutsch und Englisch (nach Browsersprache,
+umschaltbar im Fuß der Seitenleiste). Changeset-Kommentar, OSM-Hinweise und
+die Auftragsdatei für KI-Agenten folgen der gewählten Sprache. Weitere
+Sprachen: siehe „Mehrsprachigkeit“ in `STAND.md`.
+
 Zusätzlich gibt es Online-Prüfungen: Gibt es das Wikidata-Objekt noch, ist
 es eine Weiterleitung, und passt der `wikipedia`-Tag zum verknüpften Artikel?
 Antwortet der Server einer Website, und gibt es http-Websites auch per https?

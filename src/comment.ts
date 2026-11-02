@@ -1,6 +1,7 @@
 import type { TagChange } from './changes.js';
 import { CHECKS, coversKey } from './checks.js';
 import { elementKey } from './osm.js';
+import { t } from './i18n.js';
 
 /** The OSM API rejects longer tag values, including the changeset comment. */
 export const MAX_COMMENT = 255;
@@ -25,7 +26,7 @@ function build(list: TagChange[], detail: Detail): string {
   // the label of the check, or the key itself (e.g. lunch:menu:url)
   const label = (key: string) => {
     const check = CHECKS.find((c) => coversKey(c, key));
-    return detail === 'groups' && check?.group === 'social' ? 'soziale Netze' : (check?.label ?? key);
+    return detail === 'groups' && check?.group === 'social' ? t('comment.social') : (check?.label ?? key);
   };
   const labels = (keys: string[]) => [...new Set(keys.map(label))];
   const part = (title: string, items: string[]) => (detail === 'kinds' ? title : `${title}: ${items.join(', ')}`);
@@ -48,26 +49,26 @@ function build(list: TagChange[], detail: Detail): string {
 
   const parts: string[] = [];
   if (closed > 0) {
-    parts.push(`existiert nicht mehr: ${closed === 1 ? '1 Objekt' : `${closed} Objekte`}`);
+    parts.push(t('comment.closed', { count: closed }));
   }
   if (corrected.length > 0) {
-    parts.push(part('Formatierung korrigiert', corrected));
+    parts.push(part(t('comment.corrected'), corrected));
   }
   if (removed.length > 0) {
-    parts.push(part(detail === 'kinds' ? 'Tags entfernt' : 'entfernt', removed));
+    parts.push(part(t(detail === 'kinds' ? 'comment.removedTags' : 'comment.removed'), removed));
   }
   if (duplicates.length > 0) {
-    parts.push(part('doppelte Angaben entfernt', duplicates));
+    parts.push(part(t('comment.duplicates'), duplicates));
   }
   if (moved.length > 0) {
-    parts.push(part(detail === 'kinds' ? 'Tags umbenannt' : 'umbenannt', moved));
+    parts.push(part(t(detail === 'kinds' ? 'comment.movedTags' : 'comment.moved'), moved));
   }
   if (fromWebsite.length > 0) {
     // the AI is always named, also in the shortest form
-    parts.push(part(`von der Website übernommen, ausgewertet mit KI-Unterstützung (${aiModels(list).join(', ')})`, fromWebsite));
+    parts.push(part(t('comment.fromWebsite', { ai: aiModels(list).join(', ') }), fromWebsite));
   }
   if (verified.length > 0) {
-    parts.push(part('online geprüft (check_date)', verified));
+    parts.push(part(t('comment.verified'), verified));
   }
   return parts.join('; ');
 }

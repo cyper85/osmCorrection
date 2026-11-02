@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 export type ElementType = 'node' | 'way' | 'relation';
 
 export interface LatLon {
@@ -58,12 +60,7 @@ export function elementCenter(element: OsmElement): LatLon | undefined {
   return undefined;
 }
 
-const TYPE_LABELS: Record<ElementType, string> = {
-  node: 'Punkt',
-  way: 'Weg',
-  relation: 'Relation',
-};
 
 export function elementLabel(element: OsmElement): string {
-  return element.tags.name ?? `${TYPE_LABELS[element.type]} ${element.id}`;
+  return element.tags.name ?? `${t(`osm.${element.type}`)} ${element.id}`;
 }

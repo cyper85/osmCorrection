@@ -1,4 +1,5 @@
 import type { ValidationResult } from 'osmvalidation';
+import { language } from './i18n.js';
 
 /** German texts for the exact English messages of osmValidation. */
 const BY_MESSAGE: Record<string, string> = {
@@ -152,4 +153,9 @@ function fromTemplate(message: string): string | undefined {
 /** German message for a validation result; the English original if unknown. */
 export function germanMessage(result: Pick<ValidationResult, 'code' | 'message'>): string {
   return BY_MESSAGE[result.message] ?? fromTemplate(result.message) ?? BY_CODE[result.code] ?? result.message;
+}
+
+/** The message in the language of the page: osmValidation's messages are English. */
+export function localMessage(result: Pick<ValidationResult, 'code' | 'message'>): string {
+  return language() === 'de' ? germanMessage(result) : result.message;
 }
