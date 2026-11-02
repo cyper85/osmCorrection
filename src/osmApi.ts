@@ -47,6 +47,13 @@ export async function fetchCurrent(refs: ElementRef[]): Promise<Map<string, ApiE
   return current;
 }
 
+/** Whether a tag value contains the phone numbers of `value` (compared by their last 9 digits). */
+function containsNumber(tag: string | undefined, value: string): boolean {
+  const numbers = (text: string) => text.split(';').map((n) => n.replace(/\D/g, '').slice(-9)).filter((n) => n !== '');
+  const present = numbers(tag ?? '');
+  return numbers(value).every((n) => present.includes(n));
+}
+
 export interface Conflict {
   change: TagChange;
   reason: string;
@@ -69,7 +76,7 @@ export function applyChanges(
   const modified = new Map<string, ApiElement>();
   const conflicts: Conflict[] = [];
   // changes that depend on another tag come last
-  const dependent = (c: TagChange) => c.verifies !== undefined || c.movedTo !== undefined;
+  const dependent = (c: TagChange) => c.verifies !== undefined || c.movedTo !== undefined || c.requires !== undefined;
   const ordered = [...changes.filter((c) => !dependent(c)), ...changes.filter(dependent)];
   for (const change of ordered) {
     const key = elementKey(change);
@@ -96,7 +103,11 @@ export function applyChanges(
       continue;
     }
     if (change.movedTo !== undefined && element.tags?.[change.movedTo.key] !== change.movedTo.value) {
-      conflicts.push({ change, reason: `Der Wert steht nicht in ${change.movedTo.key}, der Tag bleibt` });
+      conflicts.push({ change, reason: t('conflict.moved', { key: change.movedTo.key }) });
+      continue;
+    }
+    if (change.requires !== undefined && !containsNumber(element.tags?.[change.requires.key], change.requires.value)) {
+      conflicts.push({ change, reason: t('conflict.requires', { key: change.requires.key, value: change.requires.value }) });
       continue;
     }
     const tags = { ...element.tags };

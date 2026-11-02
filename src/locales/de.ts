@@ -173,6 +173,8 @@ export const de = {
   'assist.finding': 'Website mit KI auswerten: Öffnungszeiten, Telefon, E-Mail, verlinkte Profile und Hinweise auf eine Schließung.',
   'assist.missingBefore': 'Fehlt bisher. Laut Website:',
   'assist.changed': 'Laut Website geändert:',
+  'assist.together':
+    'Die Handynummer {value} kommt als eigener Vorschlag für {key}. Diese Änderung wird nur hochgeladen, wenn auch {key} übernommen ist, sonst ginge die Nummer verloren.',
   'assist.noWebsite': 'Das Objekt hat keine Website.',
   'assist.openingHours': 'Öffnungszeiten',
   'assist.openingHoursValid': 'Gültige Öffnungszeiten',
@@ -255,6 +257,7 @@ export const de = {
   'diff.new': 'neu ',
   'diff.from': ' (aus {key})',
   'diff.suggestedBy': ' (Vorschlag von {ai})',
+  'diff.requires': ' (nur zusammen mit {key})',
   'diff.remove': 'entfernen',
   'diff.removeClosure': '„existiert nicht mehr“ entfernen',
   'conflict.deleted': 'Element wurde inzwischen gelöscht',
@@ -262,6 +265,8 @@ export const de = {
   'conflict.set': 'Tag wurde inzwischen gesetzt auf „{value}“',
   'conflict.changed': 'Tag wurde inzwischen geändert auf „{value}“',
   'conflict.verified': 'Der geprüfte Wert von {key} wird nicht hochgeladen',
+  'conflict.moved': 'Der Wert steht nicht in {key}, der Tag bleibt',
+  'conflict.requires': '{key} enthält {value} nicht, der Tag bleibt, damit die Nummer nicht verloren geht',
 
   // ------------------------------------------------------------ changeset comment
   'comment.closed': { one: 'existiert nicht mehr: {count} Objekt', other: 'existiert nicht mehr: {count} Objekte' },

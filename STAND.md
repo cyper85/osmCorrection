@@ -233,6 +233,22 @@ Umgesetzt am 2026-11-01:
   wirklich hochgeladen werden (nicht bei Konflikten).
 - `npm run smoke:assist`: Browser-Test mit nachgebauter Overpass- und
   Anthropic-Antwort (kostenlos, ohne Schlüssel).
+- Handynummern und WhatsApp (entschieden 2026-11-02, osmAssist
+  1.0.0-alpha.3, osmValidation 1.0.0-alpha.3):
+  - Handynummern kommen nach `contact:mobile` (bzw. `mobile`, wenn das
+    Objekt `phone` nutzt). Neben dem, was die KI als `mobile` meldet,
+    verschiebt osmAssist Nummern mit sicherer Handy-Vorwahl (DE +49 15/16/17,
+    AT +43 6, CH +41 75–79) dorthin.
+  - Ein `phone`-Vorschlag, der eine Nummer weglässt, die als Handynummer
+    vorgeschlagen wird, trägt `together`. Der Fund sagt das, der Diff zeigt
+    „nur zusammen mit contact:mobile“, und `TagChange.requires` sorgt dafür,
+    dass er beim Hochladen nur gilt, wenn `contact:mobile` die Nummer enthält
+    (Vergleich über die Ziffern). Wird der Handy-Eintrag vor dem Hochladen
+    entfernt, gehen der Telefon-Eintrag und alle `source:`/`check_date:` mit.
+  - WhatsApp nur, wenn das Zitat „WhatsApp“ oder einen wa.me-Link enthält:
+    die Nummer, wenn sie eindeutig dasteht (Ziffern auf der Seite), sonst
+    der Link (wa.me/<nutzername>, wa.me/message/…). osmValidation lässt Links
+    gelten; bei wa.me/<nummer> wird die Nummer allein bevorzugt.
 
 ## KI-Auswertung über Claude Code (Branch `claude-code`)
 
@@ -315,7 +331,7 @@ in `src/selection.ts`.
 1.0.0 seit 2026-11-01 (live, mit echten Uploads getestet), 1.1.0 seit
 2026-11-02 (KI-Unterstützung, Impressum und Datenschutz, Mehrsprachigkeit).
 1.2.0 seit 2026-11-02 (Anleitung, Ersatz über die OSM-API, Zwischenspeicher
-für den KI-Import).
+für den KI-Import, Handynummern und WhatsApp aus der KI-Auswertung).
 Neue Funktionen erhöhen die zweite Stelle, Fehlerbehebungen die dritte.
 
 ## Mehrsprachigkeit

@@ -171,6 +171,8 @@ export const en: Messages = {
   'assist.finding': 'Analyze website with AI: opening hours, phone, e-mail, linked profiles and signs of a closure.',
   'assist.missingBefore': 'Missing so far. According to the website:',
   'assist.changed': 'Changed according to the website:',
+  'assist.together':
+    'The mobile number {value} comes as a separate suggestion for {key}. This change is only uploaded if {key} is applied as well, otherwise the number would be lost.',
   'assist.noWebsite': 'The object has no website.',
   'assist.openingHours': 'Opening hours',
   'assist.openingHoursValid': 'Valid opening hours',
@@ -253,6 +255,7 @@ export const en: Messages = {
   'diff.new': 'new ',
   'diff.from': ' (from {key})',
   'diff.suggestedBy': ' (suggested by {ai})',
+  'diff.requires': ' (only together with {key})',
   'diff.remove': 'remove',
   'diff.removeClosure': 'remove “no longer exists”',
   'conflict.deleted': 'Element has been deleted in the meantime',
@@ -260,6 +263,8 @@ export const en: Messages = {
   'conflict.set': 'Tag has been set to “{value}” in the meantime',
   'conflict.changed': 'Tag has been changed to “{value}” in the meantime',
   'conflict.verified': 'The checked value of {key} is not uploaded',
+  'conflict.moved': 'The value is not in {key}, the tag stays',
+  'conflict.requires': '{key} does not contain {value}; the tag stays so the number is not lost',
 
   // ------------------------------------------------------------ changeset comment
   'comment.closed': { one: 'no longer exists: {count} object', other: 'no longer exists: {count} objects' },

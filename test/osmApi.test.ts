@@ -39,6 +39,36 @@ describe('applyChanges', () => {
     expect(conflicts[0]?.reason).toMatch(/geändert/);
   });
 
+  describe('a phone value that drops the mobile number', () => {
+    const tags = { 'contact:phone': '+49 3677 1234; +49 171 5678' };
+    const phone: TagChange = {
+      type: 'node',
+      id: 1,
+      key: 'contact:phone',
+      oldValue: '+49 3677 1234; +49 171 5678',
+      newValue: '+49 3677 1234',
+      requires: { key: 'contact:mobile', value: '+49 171 5678' },
+    };
+    const mobile: TagChange = { type: 'node', id: 1, key: 'contact:mobile', newValue: '+49 171 5678' };
+
+    it('is applied together with the mobile number', () => {
+      const { modified, conflicts } = applyChanges([phone, mobile], current({ type: 'node', id: 1, version: 2, tags }));
+      expect(conflicts).toEqual([]);
+      expect(modified[0]?.tags).toEqual({ 'contact:phone': '+49 3677 1234', 'contact:mobile': '+49 171 5678' });
+    });
+
+    it('also if the mobile number was written differently', () => {
+      const edited = { ...mobile, newValue: '+49 171 5678; +49 160 1' };
+      expect(applyChanges([phone, edited], current({ type: 'node', id: 1, version: 2, tags })).conflicts).toEqual([]);
+    });
+
+    it('is not applied alone, so the number is not lost', () => {
+      const { modified, conflicts } = applyChanges([phone], current({ type: 'node', id: 1, version: 2, tags }));
+      expect(modified).toEqual([]);
+      expect(conflicts[0]?.reason).toMatch(/contact:mobile enthält \+49 171 5678 nicht/);
+    });
+  });
+
   describe('moving a value to another key', () => {
     const add: TagChange = { type: 'node', id: 1, key: 'website:menu', newValue: 'https://a.de/karte', movedFrom: 'menu:url' };
     const remove: TagChange = {

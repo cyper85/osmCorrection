@@ -268,8 +268,15 @@ function proposalIssue(element: OsmElement, proposal: Proposal, check: Check, mo
     kind: 'proposal',
     valid: true,
     suggestion: proposal.value,
-    message: proposal.oldValue === undefined ? t('assist.missingBefore') : t('assist.changed'),
-    assist: { quote: proposal.quote, sourceUrl: proposal.sourceUrl, model },
+    message:
+      (proposal.oldValue === undefined ? t('assist.missingBefore') : t('assist.changed')) +
+      (proposal.together === undefined ? '' : ` ${t('assist.together', proposal.together)}`),
+    assist: {
+      quote: proposal.quote,
+      sourceUrl: proposal.sourceUrl,
+      model,
+      ...(proposal.together === undefined ? {} : { together: proposal.together }),
+    },
   };
 }
 

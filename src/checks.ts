@@ -172,7 +172,13 @@ export interface Issue extends Evaluation {
    */
   kind?: 'confirm' | 'duplicate' | 'move' | 'assist' | 'proposal' | 'signal';
   /** where the AI found it, and which model */
-  assist?: { quote: string; sourceUrl: string; model: string };
+  assist?: {
+    quote: string;
+    sourceUrl: string;
+    model: string;
+    /** apply only together with this suggestion (see osmAssist `Proposal.together`) */
+    together?: { key: string; value: string };
+  };
   duplicateOf?: string;
   moveTo?: string;
 }

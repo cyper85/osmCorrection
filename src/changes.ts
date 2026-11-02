@@ -26,6 +26,12 @@ export interface TagChange {
   movedTo?: { key: string; value: string };
   /** added with the value of this key, which is removed */
   movedFrom?: string;
+  /**
+   * only applied if this key contains the number when uploading, e.g. a
+   * phone value without the mobile number that goes to contact:mobile
+   * (compared by digits, so an edited spelling still counts)
+   */
+  requires?: { key: string; value: string };
   /** suggested by this AI model (e.g. "Anthropic Claude Sonnet 5.5"), for the changeset */
   ai?: string;
   /** all tags of the node are removed: it is deleted if it is not part of a way or relation */
@@ -39,6 +45,7 @@ function isTagChange(value: unknown): value is TagChange {
   const change = value as Record<string, unknown>;
   const verifies = change.verifies as Record<string, unknown> | undefined;
   const movedTo = change.movedTo as Record<string, unknown> | undefined;
+  const requires = change.requires as Record<string, unknown> | undefined;
   return (
     (change.type === 'node' || change.type === 'way' || change.type === 'relation') &&
     typeof change.id === 'number' &&
@@ -53,6 +60,8 @@ function isTagChange(value: unknown): value is TagChange {
     (change.ai === undefined || typeof change.ai === 'string') &&
     (movedTo === undefined ||
       (typeof movedTo === 'object' && movedTo !== null && typeof movedTo.key === 'string' && typeof movedTo.value === 'string')) &&
+    (requires === undefined ||
+      (typeof requires === 'object' && requires !== null && typeof requires.key === 'string' && typeof requires.value === 'string')) &&
     (change.deleteIfUnused === undefined || change.deleteIfUnused === true) &&
     (verifies === undefined ||
       (typeof verifies === 'object' && verifies !== null && typeof verifies.key === 'string' && typeof verifies.value === 'string'))

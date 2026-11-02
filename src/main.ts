@@ -783,7 +783,15 @@ function accept(verified: boolean): void {
   if (issue.kind === 'proposal' && issue.assist !== undefined) {
     // the tag, and where it is from: source:<key>=website, check_date:<key>=today (only if the tag is set)
     const ai = issue.assist.model;
-    changes.set({ ...ref, key: issue.key, oldValue: issue.element.tags[issue.key], newValue: value, ai });
+    const together = issue.assist.together;
+    changes.set({
+      ...ref,
+      key: issue.key,
+      oldValue: issue.element.tags[issue.key],
+      newValue: value,
+      ai,
+      ...(together === undefined ? {} : { requires: together }),
+    });
     for (const [key, newValue] of [
       [`source:${issue.key}`, 'website'],
       [checkDateKey(issue.key), today()],
@@ -1184,6 +1192,9 @@ function changeItem(change: TagChange, ...extra: Node[]): HTMLLIElement {
   } else {
     item.append(code(change.oldValue, 'old'), ' → ', code(change.newValue, 'new'));
   }
+  if (change.requires !== undefined) {
+    item.append(t('diff.requires', { key: change.requires.key }));
+  }
   if (change.ai !== undefined && change.verifies === undefined) {
     item.append(t('diff.suggestedBy', { ai: change.ai }));
   }
@@ -1205,6 +1216,16 @@ function discardChange(change: TagChange): void {
     change.closed === true
       ? changes.forElement(change).filter((c) => c.closed === true)
       : [change, ...(partner === undefined ? [] : [partner])];
+  // changes that would fail on upload without these go as well: source:/check_date: of a value, and a
+  // phone value without the mobile number (with its own source:/check_date:)
+  for (let i = 0; i < group.length; i++) {
+    const key = group[i]!.key;
+    for (const c of changes.forElement(change)) {
+      if ((c.requires?.key === key || c.verifies?.key === key) && !group.includes(c)) {
+        group.push(c);
+      }
+    }
+  }
   for (const c of group) {
     changes.delete(c, c.key);
   }

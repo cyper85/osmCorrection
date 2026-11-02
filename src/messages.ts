@@ -14,7 +14,11 @@ const BY_MESSAGE: Record<string, string> = {
   'Phone number is not in international format (+<country code> <number>)':
     'Telefonnummer ist nicht im internationalen Format (+<Ländervorwahl> <Nummer>)',
   'Phone number is missing the "+" before the country code': 'Vor der Ländervorwahl fehlt das „+“',
-  'Use the phone number instead of a WhatsApp link': 'Telefonnummer statt eines WhatsApp-Links verwenden',
+  'Valid WhatsApp link': 'Gültiger WhatsApp-Link',
+  'Valid WhatsApp link; the phone number alone is preferred': 'Gültiger WhatsApp-Link; bevorzugt ist nur die Telefonnummer',
+  'WhatsApp link contains parameters (e.g. a prefilled message)': 'WhatsApp-Link enthält Parameter (z. B. eine vorausgefüllte Nachricht)',
+  'The WhatsApp link contains no valid phone number': 'Der WhatsApp-Link enthält keine gültige Telefonnummer',
+  'URL does not point to a WhatsApp contact': 'URL zeigt nicht auf einen WhatsApp-Kontakt',
 
   'E-mail address has leading or trailing whitespace': 'E-Mail-Adresse hat Leerzeichen am Anfang oder Ende',
   'E-mail address must not start with "mailto:"': 'E-Mail-Adresse darf nicht mit „mailto:“ beginnen',
