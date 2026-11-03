@@ -18,7 +18,7 @@ geändert, wird diese Änderung als Konflikt übersprungen.
 Die Oberfläche gibt es auf Deutsch und Englisch (nach Browsersprache,
 umschaltbar im Fuß der Seitenleiste). Changeset-Kommentar, OSM-Hinweise und
 die Auftragsdatei für KI-Agenten folgen der gewählten Sprache. Weitere
-Sprachen: siehe „Mehrsprachigkeit“ in `STAND.md`.
+Sprachen: siehe „Mehrsprachigkeit“ in `docs/funktionen.md`.
 
 Zusätzlich gibt es Online-Prüfungen: Gibt es das Wikidata-Objekt noch, ist
 es eine Weiterleitung, und passt der `wikipedia`-Tag zum verknüpften Artikel?
