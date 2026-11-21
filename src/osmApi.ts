@@ -19,7 +19,8 @@ export interface ApiElement {
 
 /** Minimal interface of osm-auth's `fetch`, so the upload can be tested. */
 export interface AuthFetch {
-  fetch(resource: string, options: { method: 'GET' | 'POST' | 'PUT'; body?: string; headers?: object }): Promise<Response>;}
+  fetch(resource: string, options: { method: 'GET' | 'POST' | 'PUT'; body?: string; headers?: HeadersInit }): Promise<Response>;
+}
 
 const BATCH_SIZE = 100;
 
